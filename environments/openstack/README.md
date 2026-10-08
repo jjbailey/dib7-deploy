@@ -15,7 +15,8 @@ the provider through `OS_*` environment variables. The encrypted
 [`doc/vault-openstack.md`](../../doc/vault-openstack.md) for Vault setup and a
 plan example.
 
-Terraform state is local at `inventory/openstack/terraform.tfstate`. Protect
-and back up the ignored `inventory/` directory separately from source control.
+Terraform state is local at `inventory/openstack/terraform.tfstate`. The
+private checkout tracks inventory for development; protect and back it up
+separately.
 See [`doc/state-management.md`](../../doc/state-management.md) for named
 workspaces and external state backups.

@@ -1,6 +1,8 @@
 # Terraform state and deployments
 
-Each provider has a local state file under `inventory/<provider>/`. The
+Each provider has a local state file under `inventory/<provider>/`. The private
+checkout tracks its working state for development; the public export excludes
+`inventory/`. The
 `default` workspace continues to use the existing `terraform.tfstate` path.
 Additional CLI workspaces have separate state files under
 `inventory/<provider>/terraform.tfstate.d/<workspace>/terraform.tfstate`.
@@ -23,7 +25,7 @@ separate workspace for each deployment **before** planning or applying. Set `AWS
 python3 bin/terraform-aws.py init
 python3 bin/terraform-aws.py workspace new aws-${AWS_TARGET_PROJECT}-us-west-2-ubuntu26041-base
 python3 bin/terraform-aws.py plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_TARGET_PROJECT}.tfvars
+  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
 ```
 
 Use `workspace select NAME` to return to an existing deployment. Terraform

@@ -19,6 +19,7 @@ from terraform_runner import (
     add_runner_arguments,
     read_secret as _read_secret,
     run_terraform,
+    terraform_environment,
     terraform_args_or_error,
 )
 
@@ -86,21 +87,16 @@ def _terraform_environment(
     credentials_json: str | None = None,
     project_id: str | None = None,
 ) -> dict[str, str]:
-    env = os.environ.copy()
-    # Force provider authentication through the selected Vault KV secret and
-    # keep Vault/OpenBao tokens and alternate Google Application Default
-    # Credentials sources out of Terraform's environment.
-    for name in (
-        "VAULT_TOKEN",
-        "VAULT_NAMESPACE",
-        "BAO_TOKEN",
-        "GOOGLE_APPLICATION_CREDENTIALS",
-        "GOOGLE_CLOUD_KEYFILE_JSON",
-        "GCLOUD_KEYFILE_JSON",
-        "GOOGLE_OAUTH_ACCESS_TOKEN",
-        "CLOUDSDK_AUTH_ACCESS_TOKEN",
-    ):
-        env.pop(name, None)
+    # Keep alternate Google credential sources out of Terraform's environment.
+    env = terraform_environment(
+        (
+            "GOOGLE_APPLICATION_CREDENTIALS",
+            "GOOGLE_CLOUD_KEYFILE_JSON",
+            "GCLOUD_KEYFILE_JSON",
+            "GOOGLE_OAUTH_ACCESS_TOKEN",
+            "CLOUDSDK_AUTH_ACCESS_TOKEN",
+        )
+    )
     if credentials_json is not None:
         env["GOOGLE_CREDENTIALS"] = credentials_json
     else:

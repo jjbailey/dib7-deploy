@@ -28,6 +28,15 @@ NO_CREDENTIAL_COMMANDS = frozenset(
     }
 )
 
+COMMON_CREDENTIAL_ENV = ("VAULT_TOKEN", "VAULT_NAMESPACE", "BAO_TOKEN")
+
+def terraform_environment(extra_names: tuple[str, ...] = ()) -> dict[str, str]:
+    """Copy the process environment without inherited credential selectors."""
+    environment = os.environ.copy()
+    for name in (*COMMON_CREDENTIAL_ENV, *extra_names):
+        environment.pop(name, None)
+    return environment
+
 class VaultError(Exception):
     """An actionable Vault credential or KV response error."""
 

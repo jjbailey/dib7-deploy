@@ -108,7 +108,7 @@ python3 bin/terraform-vsphere.py --target-vcenter legacy plan \
 Review the plan before `apply`. Terraform state is local plaintext at
 `inventory/vsphere/terraform.tfstate`; it contains VM configuration and any
 public key supplied through GuestInfo, but not the vCenter password. Protect
-and back up the ignored `inventory/` directory.
+and back up the private `inventory/` directory.
 
 The vSphere provider can also be configured with `VSPHERE_SERVER`,
 `VSPHERE_USER`, `VSPHERE_PASSWORD`, and

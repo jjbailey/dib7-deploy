@@ -38,16 +38,19 @@ environment cannot silently change the target.
 ## Generate catalog variables and launch
 
 Generate tfvars from the current `glance_image` catalog row. Select the same
-project and region recorded in the catalog. Set `OS_TARGET_PROJECT` to that project ID before running the examples:
+project and region recorded in the catalog. Set `OS_CATALOG_PROJECT` to that
+catalog project before running the generation example. Set
+`OS_TARGET_PROJECT` separately to the project where Terraform will create the
+server; it may differ when the image is shared:
 
 ```bash
 python3 bin/generate-openstack-tfvars.py ubuntu26041-base \
-  --project ${OS_TARGET_PROJECT} \
+  --project ${OS_CATALOG_PROJECT} \
   --region US-WEST-OR-1
 ```
 
 This writes
-`inventory/openstack/ubuntu26041-base-project-${OS_TARGET_PROJECT}.tfvars`.
+`inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars`.
 The catalog project identifies the image owner. Terraform creates the server
 in the project selected from Vault; that can be a different project if the
 image is shared with it.
@@ -80,7 +83,7 @@ Initialize and plan from the repository root:
 ```bash
 python3 bin/terraform-openstack.py init
 python3 bin/terraform-openstack.py plan \
-  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_TARGET_PROJECT}.tfvars \
+  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars \
   -var-file=../../inventory/openstack/ubuntu26041-base-launch.settings.tfvars
 ```
 
@@ -89,10 +92,10 @@ command:
 
 ```bash
 python3 bin/terraform-openstack.py --target-project ${OS_TARGET_PROJECT} plan \
-  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_TARGET_PROJECT}.tfvars \
+  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars \
   -var-file=../../inventory/openstack/ubuntu26041-base-launch.settings.tfvars
 ```
 
 Review the plan before applying. Terraform state is plaintext at
-`inventory/openstack/terraform.tfstate`; protect and back up the ignored
+`inventory/openstack/terraform.tfstate`; protect and back up the private
 `inventory/` directory.

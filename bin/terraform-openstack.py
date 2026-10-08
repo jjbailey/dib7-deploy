@@ -18,6 +18,7 @@ from terraform_runner import (
     add_runner_arguments,
     read_secret as _read_secret,
     run_terraform,
+    terraform_environment,
     terraform_args_or_error,
 )
 
@@ -162,15 +163,12 @@ def _terraform_environment(
     credentials: dict[str, str] | None = None,
     region: str | None = None,
 ) -> dict[str, str]:
-    env = os.environ.copy()
-    for name in (
-        "VAULT_TOKEN",
-        "VAULT_NAMESPACE",
-        "BAO_TOKEN",
+    env = terraform_environment(
+        (
         *OPENSTACK_AUTH_ENV,
         "TF_VAR_target_region",
-    ):
-        env.pop(name, None)
+        )
+    )
     if credentials:
         env.update(credentials)
     if region is not None:

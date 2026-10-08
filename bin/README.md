@@ -1,16 +1,17 @@
 # Catalog to tfvars generators
 
 Each provider script selects the latest `published` catalog row for a logical
-image and writes a tfvars file under the ignored top-level `inventory/`
+image and writes a tfvars file under the private top-level `inventory/`
 directory. AWS selects the newest numeric `version` in the selected target
 scope. GCP, OpenStack, and vSphere normally have one current row per image and
 scope; all providers fail if multiple projects, regions, or scopes match until
-selectors are supplied. Set `AWS_TARGET_PROJECT`, `GCP_TARGET_PROJECT`, and `OS_TARGET_PROJECT` to the intended local selectors before using these examples.
+selectors are supplied. Set the catalog selectors before using these examples;
+the generated files are also used by the local smoke scripts.
 
 ```bash
-python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project ${AWS_TARGET_PROJECT}
+python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project ${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}
 python3 bin/generate-gcp-tfvars.py ubuntu26041-base --project ${GCP_TARGET_PROJECT}
-python3 bin/generate-openstack-tfvars.py ubuntu26041-base --region US-WEST-OR-1 --project ${OS_TARGET_PROJECT}
+python3 bin/generate-openstack-tfvars.py ubuntu26041-base --region US-WEST-OR-1 --project ${OS_CATALOG_PROJECT}
 python3 bin/generate-vsphere-tfvars.py ubuntu26041-base --scope vcenter=legacy --scope content_library=Content_Library
 ```
 

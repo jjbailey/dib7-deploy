@@ -18,6 +18,7 @@ from terraform_runner import (
     add_runner_arguments,
     read_secret as _read_secret,
     run_terraform,
+    terraform_environment,
     terraform_args_or_error,
 )
 
@@ -107,19 +108,15 @@ def _terraform_environment(
     vcenter_key: str | None = None,
     datacenter: str | None = None,
 ) -> dict[str, str]:
-    env = os.environ.copy()
-    # Provider authentication always comes from the selected Vault entry for
-    # plans and applies. Do not let inherited credentials shadow it.
-    for name in (
-        "VAULT_TOKEN",
-        "VAULT_NAMESPACE",
-        "BAO_TOKEN",
-        "VSPHERE_SERVER",
-        "VSPHERE_USER",
-        "VSPHERE_PASSWORD",
-        "VSPHERE_ALLOW_UNVERIFIED_SSL",
-    ):
-        env.pop(name, None)
+    # Provider authentication always comes from the selected Vault entry.
+    env = terraform_environment(
+        (
+            "VSPHERE_SERVER",
+            "VSPHERE_USER",
+            "VSPHERE_PASSWORD",
+            "VSPHERE_ALLOW_UNVERIFIED_SSL",
+        )
+    )
     env.pop("TF_VAR_target_vcenter_key", None)
     env.pop("TF_VAR_datacenter", None)
     if credentials:

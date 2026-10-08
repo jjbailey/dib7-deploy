@@ -50,13 +50,15 @@ Install the Python dependency into the existing `~/.dib7` environment:
 
 Initialize Terraform without AWS credentials, then use the wrapper for plans
 and applies. It prints the resolved AWS account and role identity and credential
-expiration to stderr, then invokes Terraform. Set `AWS_TARGET_PROJECT` to the target account ID before using these examples:
+expiration to stderr, then invokes Terraform. Set `AWS_TARGET_PROJECT` to the
+deployment account ID. Use `AWS_CATALOG_PROJECT` when the AMI is owned by a
+different account; otherwise they can be the same:
 
 ```bash
 ~/.dib7/bin/python bin/terraform-aws.py init
-python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project ${AWS_TARGET_PROJECT}
+python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project ${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}
 ~/.dib7/bin/python bin/terraform-aws.py plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_TARGET_PROJECT}.tfvars
+  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
 ```
 
 Generated filenames include the catalog project/account and other non-location
@@ -70,7 +72,7 @@ used in Ansible with `--target-project` before the Terraform command, or set
 
 ```bash
 ~/.dib7/bin/python bin/terraform-aws.py --target-project ${AWS_TARGET_PROJECT} plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_TARGET_PROJECT}.tfvars
+  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
 ```
 
 The wrapper's Vault settings can be supplied through environment variables or
@@ -80,7 +82,7 @@ flags. For example, to use a different KV path and assume a deploy role:
 export DIB7_VAULT_AWS_SECRET_PATH=production/aws-deploy
 export DIB7_AWS_ASSUME_ROLE_ARN=arn:aws:iam::${AWS_TARGET_PROJECT}:role/dib7-tf-deploy
 ~/.dib7/bin/python bin/terraform-aws.py plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_TARGET_PROJECT}.tfvars
+  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
 ```
 
 The wrapper obtains fresh credentials for each plan or apply invocation, so
@@ -94,7 +96,7 @@ SDK logging that could expose keys.
 Terraform's local state remains plaintext at
 `inventory/aws/terraform.tfstate`. The wrapper flow keeps provider credentials
 out of that state; it does not encrypt the state file itself. Back up and
-protect the ignored `inventory/` directory.
+protect the private `inventory/` directory.
 
 `--role-arn`, `--session-name`, `--duration-seconds`, `--sts-region`,
 `--kv-mount`, and `--secret-path` are also available; run the wrapper with

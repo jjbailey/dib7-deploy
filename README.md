@@ -14,13 +14,14 @@ environment.
 ## Repository layout
 
 - `inventory/` holds generated or machine-specific deployment data locally.
-  Its contents are ignored by Git, apart from this folder's README.
+  The private checkout keeps these files in Git for development and recovery;
+  `local/rsync-to-dib7-deploy.sh` excludes them from the public checkout.
 - Terraform source, reusable modules, and committed examples belong in the
   normal source folders, separate from generated inventory.
 
-The catalog is the source for published image identifiers. Keep any other
-generated inventory reproducible or backed up separately before relying on a
-local ignored copy as the only record.
+The catalog is the source for published image identifiers. Keep generated
+inventory reproducible or backed up separately even though the private checkout
+tracks its working copy.
 
 ## Generate provider tfvars
 
@@ -54,7 +55,13 @@ Run the catalog and Vault-runner unit tests with:
 python3 -m unittest discover -s tests -v
 ```
 
-GitLab CI runs the unit tests and checks Terraform formatting in `environments/`.
+This repository currently has no tracked CI pipeline; run the unit tests and
+Terraform formatting check locally before committing:
+
+```bash
+terraform fmt -check -recursive environments/
+```
+
 See [`doc/state-management.md`](doc/state-management.md) for separate
 deployment workspaces and state backups.
 

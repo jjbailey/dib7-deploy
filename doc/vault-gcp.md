@@ -95,6 +95,6 @@ unset.
 
 Terraform state is local and plaintext at `inventory/gcp/terraform.tfstate`.
 It records the instance and its metadata, but not the service-account key used
-to authenticate the provider. Protect and back up the ignored `inventory/`
+to authenticate the provider. Protect and back up the private `inventory/`
 directory. Plans and applies fetch the key anew from Vault; `init`, `fmt`,
 `validate`, and Terraform `state` commands do not require it.
