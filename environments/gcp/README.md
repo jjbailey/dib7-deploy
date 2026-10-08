@@ -1,4 +1,4 @@
-# GCP instance environment
+# GCP Instance Environment
 
 This Terraform root launches one Compute Engine instance from a published
 `compute_image` entry selected by `bin/generate-gcp-tfvars.py`. The generated

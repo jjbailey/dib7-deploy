@@ -1,4 +1,4 @@
-# vSphere instance environment
+# vSphere Instance Environment
 
 This Terraform root clones a published vSphere inventory template selected
 from the dib7 image catalog. dib7 imports the OVA into a Content

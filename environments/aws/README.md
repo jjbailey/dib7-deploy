@@ -1,4 +1,4 @@
-# AWS instance environment
+# AWS Instance Environment
 
 This root module launches one EC2 instance from an AMI entry selected by
 `bin/generate-aws-tfvars.py`. The catalog-derived variables identify the image;

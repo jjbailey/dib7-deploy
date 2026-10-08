@@ -1,4 +1,4 @@
-# OpenStack instance environment
+# OpenStack Instance Environment
 
 This Terraform root launches one Nova instance from a Glance image selected
 from the dib7 catalog. The image UUID, project, and region come from the
