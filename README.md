@@ -1,0 +1,62 @@
+# dib7-deploy
+
+Terraform project for launching instances from images published by
+[dib7](../dib7). `dib7` remains responsible for building QCOW2
+images, importing them into supported clouds, and publishing their artifact
+identifiers to its image catalog.
+
+The initial provider scope is AWS, GCP, OpenStack, and VMware vSphere. Terraform
+will read the catalog contract documented in
+[`dib7/doc/image-catalog.md`](../dib7/doc/image-catalog.md), then use a
+selected published image to launch an instance in the corresponding
+environment.
+
+## Repository layout
+
+- `inventory/` holds generated or machine-specific deployment data locally.
+  Its contents are ignored by Git, apart from this folder's README.
+- Terraform source, reusable modules, and committed examples belong in the
+  normal source folders, separate from generated inventory.
+
+The catalog is the source for published image identifiers. Keep any other
+generated inventory reproducible or backed up separately before relying on a
+local ignored copy as the only record.
+
+## Generate provider tfvars
+
+The scripts in `bin/` select a published image from the dib7 catalog and
+write catalog-derived tfvars under `inventory/<provider>/`. Set `AWS_TARGET_PROJECT` to your target AWS account ID, then run:
+
+```bash
+python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project ${AWS_TARGET_PROJECT}
+```
+
+See [`bin/README.md`](bin/README.md) for all provider commands and scope
+selectors.
+
+The launch environments are [AWS](environments/aws/README.md),
+[GCP](environments/gcp/README.md), [OpenStack](environments/openstack/README.md),
+and [vSphere](environments/vsphere/README.md). Each uses catalog-derived image
+fields and keeps destination placement and VM settings in local inventory.
+Provider credentials are read from HashiCorp Vault at runtime; Vault mirrors
+the provider data in `dib7` Ansible Vault, which remains the source of
+truth. See [`doc/vault-sync.md`](doc/vault-sync.md),
+[`doc/vault-aws.md`](doc/vault-aws.md),
+[`doc/vault-gcp.md`](doc/vault-gcp.md),
+[`doc/vault-openstack.md`](doc/vault-openstack.md), and
+[`doc/vault-vsphere.md`](doc/vault-vsphere.md).
+
+## Checks
+
+Run the catalog and Vault-runner unit tests with:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+GitLab CI runs the unit tests and checks Terraform formatting in `environments/`.
+See [`doc/state-management.md`](doc/state-management.md) for separate
+deployment workspaces and state backups.
+
+The scripts in [`local/`](local/README.md) are manual smoke tests that create
+real cloud resources; they are separate from the unit tests.

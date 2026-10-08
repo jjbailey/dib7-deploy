@@ -1,0 +1,20 @@
+# Terraform working data
+**/.terraform/*
+/.venv/
+__pycache__/
+*.py[cod]
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Local generated inventory and deployment inputs
+/inventory/*
+!/inventory/README.md
+
+# Local Terraform overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
