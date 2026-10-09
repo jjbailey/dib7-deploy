@@ -1,14 +1,14 @@
 # dib7-deploy
 
 Terraform project for launching instances from images published by
-[dib7](../dib7). `dib7` remains responsible for building QCOW2
-images, importing them into supported clouds, and publishing their artifact
-identifiers to its image catalog.
+[`dib7`](https://github.com/jjbailey/dib7). `dib7` remains responsible for
+building QCOW2 images, importing them into supported clouds, and publishing
+their artifact identifiers to its image catalog.
 
 The initial provider scope is AWS, GCP, OpenStack, and VMware vSphere. Terraform
 will read the catalog contract documented in
-[`dib7/doc/image-catalog.md`](../dib7/doc/image-catalog.md), then use a
-selected published image to launch an instance in the corresponding
+[`doc/image-catalog.md`](https://github.com/jjbailey/dib7/blob/main/doc/image-catalog.md),
+then use a selected published image to launch an instance in the corresponding
 environment.
 
 ## Repository layout
