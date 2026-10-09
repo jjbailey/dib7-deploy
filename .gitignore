@@ -9,9 +9,8 @@ __pycache__/
 crash.log
 crash.*.log
 
-# Local generated inventory and deployment inputs
-/inventory/*
-!/inventory/README.md
+# Inventory tfvars are reviewed deployment inputs. State and backups remain
+# local and are covered by the Terraform state patterns above.
 
 # Local Terraform overrides
 override.tf

@@ -58,7 +58,11 @@ def _select_project(
 
     # Keep dib7's selection behavior: with no explicit project, legacy
     # credentials take precedence over a project map when both are present.
-    if requested is None and isinstance(legacy, dict):
+    if (
+        requested is None
+        and isinstance(legacy, dict)
+        and str(legacy.get("project_name", "")).strip()
+    ):
         return None, legacy
 
     if isinstance(projects, dict):
@@ -92,8 +96,6 @@ def _select_project(
             )
         return key, entry
 
-    if isinstance(legacy, dict) and requested is None:
-        return None, legacy
     raise VaultError(
         "Vault data must contain openstack_projects or a legacy openstack_auth mapping"
     )
@@ -155,6 +157,11 @@ def _credentials(
             f"{args.secret_path}:project_id must be a non-empty string or integer"
         )
     project_id = str(project_id_value) if project_id_value is not None else None
+    if project_id is not None:
+        # OpenStack SDK gives project-name precedence when both are set.
+        # Prefer the explicit ID when the Vault entry provides one.
+        environment.pop("OS_PROJECT_NAME", None)
+        environment["OS_PROJECT_ID"] = project_id
 
     region = project.get("region_name")
     return environment, key, project_name, project_id, region

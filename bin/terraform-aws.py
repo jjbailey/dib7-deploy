@@ -39,6 +39,17 @@ def _required_secret_any(data: dict[str, Any], fields: list[str], path: str) -> 
 
 def _select_project(data: dict[str, Any], requested: str | None) -> dict[str, Any]:
     requested = requested.strip() if requested and requested.strip() else None
+    # Match dib7: without an explicit selector, accept the legacy flat
+    # project even when a projects map is also present.
+    if (
+        requested is None
+        and isinstance(data.get("aws_region"), str)
+        and data["aws_region"].strip()
+        and "s3_bucket" in data
+        and "vmimport_role_name" in data
+    ):
+        return data
+
     projects = data.get("aws_projects")
     if isinstance(projects, dict):
         if requested is None and len(projects) > 1:

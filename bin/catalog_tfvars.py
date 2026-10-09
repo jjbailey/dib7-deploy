@@ -191,20 +191,15 @@ def _default_output(provider: str, image: dict[str, Any]) -> Path:
     parts = [image["logical_name"]]
     # Keep target geography out of generated filenames so providers use one
     # convention. Project/account and non-location scope still identify the
-    # entry. vSphere filenames include the content-library value only; the
-    # content_library key and vCenter scope are omitted.
+    # entry. Preserve the same key-value format for non-location scopes across
+    # all providers, including vSphere's vCenter and content library.
     for field in ("project",):
         if image.get(field) is not None:
             parts.append(f"{field}-{image[field]}")
-    if provider == "vsphere":
-        content_library = image.get("scope", {}).get("content_library")
-        if content_library is not None:
-            parts.append(content_library)
-    else:
-        for key, value in sorted(image.get("scope", {}).items()):
-            if key.casefold() in {"region", "zone"}:
-                continue
-            parts.append(f"{key}-{value}")
+    for key, value in sorted(image.get("scope", {}).items()):
+        if key.casefold() in {"region", "zone"}:
+            continue
+        parts.append(f"{key}-{value}")
     filename = "-".join(re.sub(r"[^A-Za-z0-9._-]+", "-", part).strip("-") for part in parts)
     return REPO_ROOT / "inventory" / provider / f"{filename}.tfvars"
 
@@ -240,6 +235,9 @@ def generate(provider: str, artifact_type: str, description: str, argv: list[str
 
     if not LOGICAL_NAME_RE.fullmatch(args.logical_name):
         parser.error("logical_name may contain only letters, digits, dot, underscore, and hyphen, and must start with a letter or digit")
+    for option, value in (("--project", args.project), ("--region", args.region)):
+        if value is not None and not value.strip():
+            parser.error(f"{option} must be non-empty when supplied")
 
     scope_selectors: dict[str, str] = {}
     for key, value in args.scope:

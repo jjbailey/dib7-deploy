@@ -55,10 +55,11 @@ deployment account ID. Use `AWS_CATALOG_PROJECT` when the AMI is owned by a
 different account; otherwise they can be the same:
 
 ```bash
+: "${AWS_TARGET_PROJECT:?Set the target AWS account ID}"
 ~/.dib7/bin/python bin/terraform-aws.py init
-python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project ${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}
+python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project "${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}"
 ~/.dib7/bin/python bin/terraform-aws.py plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
+  -var-file="../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars"
 ```
 
 Generated filenames include the catalog project/account and other non-location
@@ -95,8 +96,8 @@ SDK logging that could expose keys.
 
 Terraform's local state remains plaintext at
 `inventory/aws/terraform.tfstate`. The wrapper flow keeps provider credentials
-out of that state; it does not encrypt the state file itself. Back up and
-protect the private `inventory/` directory.
+out of that state; it does not encrypt the state file itself. State is ignored
+by Git. Protect it and back it up outside the repository.
 
 `--role-arn`, `--session-name`, `--duration-seconds`, `--sts-region`,
 `--kv-mount`, and `--secret-path` are also available; run the wrapper with

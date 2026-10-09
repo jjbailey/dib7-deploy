@@ -76,9 +76,5 @@ resource "vsphere_virtual_machine" "image" {
       error_message = "The selected Vault vCenter does not match the vCenter recorded in the image catalog scope."
     }
 
-    precondition {
-      condition     = var.ssh_public_key == null || (var.image_ssh_username != null && trimspace(var.image_ssh_username) != "")
-      error_message = "A public key was provided, but the catalog has no image_ssh_username for this image."
-    }
   }
 }

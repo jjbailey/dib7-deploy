@@ -45,6 +45,9 @@ the pair must exist in the target AWS account and region. Set `key_name`
 explicitly in the launch settings to override the convention. Run `apply` only
 after reviewing the plan.
 
+The checked-in smoke-test settings set `key_name = "cloud"`; the catalog
+username default is used only when no explicit key-pair name is supplied.
+
 For repeatable launch settings, store them in a second private tfvars file under
 `inventory/aws/`, separate from the catalog-generated file. The AWS smoke script
 uses `inventory/aws/ubuntu26041-test.settings.tfvars` for the example image.

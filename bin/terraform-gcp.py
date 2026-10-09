@@ -28,6 +28,15 @@ GCP_ROOT = REPO_ROOT / "environments" / "gcp"
 DEFAULT_SECRET_PATH = "dib7-deploy/gcp"
 def _select_project(data: dict[str, Any], requested: str | None) -> dict[str, Any]:
     requested = requested.strip() if requested and requested.strip() else None
+    # Match dib7: without an explicit selector, accept the legacy flat
+    # project even when a projects map is also present.
+    if (
+        requested is None
+        and data.get("gcp_project") is not None
+        and str(data["gcp_project"]).strip()
+    ):
+        return data
+
     projects = data.get("gcp_projects")
     if isinstance(projects, dict):
         matches = [

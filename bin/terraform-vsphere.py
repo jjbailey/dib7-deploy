@@ -30,17 +30,15 @@ def _select_vcenter(
 ) -> tuple[str | None, dict[str, Any]]:
     requested = requested.strip() if requested and requested.strip() else None
     centers = data.get("vsphere_projects")
-    legacy_fields = (
-        "vcenter_hostname",
-        "vcenter_username",
-        "vcenter_password",
+    has_legacy = (
+        isinstance(data.get("vcenter_hostname"), str)
+        and bool(data["vcenter_hostname"].strip())
     )
-    has_legacy = all(field in data for field in legacy_fields)
 
     # Match dib7's selection rules: absent an explicit selector, flat
     # legacy credentials take precedence even when vsphere_projects exists.
     if requested is None and has_legacy:
-        return None, data
+        return "legacy", data
 
     if isinstance(centers, dict):
         if requested is None and len(centers) > 1:
@@ -65,9 +63,9 @@ def _select_vcenter(
     # The source Ansible Vault still accepts its original flat mapping.
     if has_legacy:
         hostname = data.get("vcenter_hostname")
-        if requested is not None and requested != str(hostname):
+        if requested is not None and requested not in {"legacy", str(hostname)}:
             raise VaultError("the selected vCenter did not match the legacy Vault entry")
-        return None, data
+        return "legacy", data
     raise VaultError(
         "Vault data must contain vsphere_projects or a legacy vCenter mapping"
     )
