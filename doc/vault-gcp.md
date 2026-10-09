@@ -40,11 +40,15 @@ mapping, including each `service_account_key`, to
 Generate the image variables from the current `dib7` catalog. The
 catalog's `image_project` identifies the project that owns the shared image;
 the selected Ansible Vault entry's `gcp_project` supplies Terraform's default
-deployment project. Set `project_id` in the local settings file only when you
-want to deploy to a different project. Set `GCP_TARGET_PROJECT` to the target project ID before running the examples.
+deployment project. Set `GCP_TARGET_PROJECT` to the deployment project ID and
+`GCP_CATALOG_PROJECT` to the catalog image owner's project ID before running
+the examples. They can be the same. These are shell variables used to build
+the generator and file paths; the Terraform wrapper's Vault selector is
+`DIB7_GCP_TARGET_PROJECT` or `--target-project`. Set `project_id` in the local
+settings file only when you want to deploy to a different project.
 
 ```bash
-python3 bin/generate-gcp-tfvars.py ubuntu26041-base --project ${GCP_TARGET_PROJECT}
+python3 bin/generate-gcp-tfvars.py ubuntu26041-base --project "${GCP_CATALOG_PROJECT}"
 ```
 
 Create a local launch settings file such as
@@ -70,7 +74,7 @@ Initialize and plan from the repository root:
 ```bash
 terraform -chdir=environments/gcp init
 python3 bin/terraform-gcp.py plan \
-  -var-file=../../inventory/gcp/ubuntu26041-base-project-${GCP_TARGET_PROJECT}.tfvars \
+  -var-file="../../inventory/gcp/ubuntu26041-base-project-${GCP_CATALOG_PROJECT}.tfvars" \
   -var-file=../../inventory/gcp/ubuntu26041-base-launch.settings.tfvars
 ```
 
@@ -80,8 +84,8 @@ command, or set
 `DIB7_GCP_TARGET_PROJECT`:
 
 ```bash
-python3 bin/terraform-gcp.py --target-project ${GCP_TARGET_PROJECT} plan \
-  -var-file=../../inventory/gcp/ubuntu26041-base-project-${GCP_TARGET_PROJECT}.tfvars \
+python3 bin/terraform-gcp.py --target-project "${GCP_TARGET_PROJECT}" plan \
+  -var-file="../../inventory/gcp/ubuntu26041-base-project-${GCP_CATALOG_PROJECT}.tfvars" \
   -var-file=../../inventory/gcp/ubuntu26041-base-launch.settings.tfvars
 ```
 
@@ -95,6 +99,6 @@ unset.
 
 Terraform state is local and plaintext at `inventory/gcp/terraform.tfstate`.
 It records the instance and its metadata, but not the service-account key used
-to authenticate the provider. Protect and back up the ignored `inventory/`
-directory. Plans and applies fetch the key anew from Vault; `init`, `fmt`,
+to authenticate the provider. State is ignored by Git; protect it and back it
+up outside the repository. Plans and applies fetch the key anew from Vault; `init`, `fmt`,
 `validate`, and Terraform `state` commands do not require it.

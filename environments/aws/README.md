@@ -28,7 +28,7 @@ Set `AWS_TARGET_PROJECT` to the intended AWS account ID. Then initialize and pla
 ```bash
 ~/.dib7/bin/python bin/terraform-aws.py init
 ~/.dib7/bin/python bin/terraform-aws.py plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_TARGET_PROJECT}.tfvars \
+  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars \
   -var='instance_name=ubuntu26041-test' \
   -var='instance_type=t3.small'
 ```
@@ -45,8 +45,13 @@ the pair must exist in the target AWS account and region. Set `key_name`
 explicitly in the launch settings to override the convention. Run `apply` only
 after reviewing the plan.
 
-For repeatable launch settings, store them in a second ignored tfvars file
-under `inventory/aws/`, separate from the catalog-generated file. For example,
+The checked-in smoke-test settings set `key_name = "cloud"`; the catalog
+username default is used only when no explicit key-pair name is supplied.
+
+For repeatable launch settings, store them in a second private tfvars file under
+`inventory/aws/`, separate from the catalog-generated file. The AWS smoke script
+uses `inventory/aws/ubuntu26041-test.settings.tfvars` for the example image.
+For example,
 `inventory/aws/ubuntu26041-test.settings.tfvars` can contain:
 
 ```hcl

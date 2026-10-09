@@ -21,7 +21,8 @@ to the provider through its process environment. HashiCorp Vault mirrors
 See [`doc/vault-vsphere.md`](../../doc/vault-vsphere.md) for Vault setup,
 catalog generation, and a launch example.
 
-Terraform state is local at `inventory/vsphere/terraform.tfstate`. Protect and
-back up the ignored `inventory/` directory separately from source control.
+Terraform state is local at `inventory/vsphere/terraform.tfstate` and ignored
+by Git. Keep it local and back it up to a secured location outside the
+repository.
 See [`doc/state-management.md`](../../doc/state-management.md) for named
 workspaces and external state backups.

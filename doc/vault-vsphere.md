@@ -52,7 +52,7 @@ python3 bin/generate-vsphere-tfvars.py ubuntu26041-base \
 ```
 
 This writes
-`inventory/vsphere/ubuntu26041-base-Content_Library.tfvars`.
+`inventory/vsphere/ubuntu26041-base-content_library-Content_Library-vcenter-legacy.tfvars`.
 The catalog entry supplies the inventory template name, boot mode, and SSH
 username. Create a separate local launch settings file, for example
 `inventory/vsphere/ubuntu26041-base-launch.settings.tfvars`:
@@ -92,7 +92,7 @@ Initialize and plan from the repository root:
 ```bash
 terraform -chdir=environments/vsphere init
 python3 bin/terraform-vsphere.py plan \
-  -var-file=../../inventory/vsphere/ubuntu26041-base-Content_Library.tfvars \
+  -var-file=../../inventory/vsphere/ubuntu26041-base-content_library-Content_Library-vcenter-legacy.tfvars \
   -var-file=../../inventory/vsphere/ubuntu26041-base-launch.settings.tfvars
 ```
 
@@ -101,14 +101,14 @@ hostname used in the catalog scope:
 
 ```bash
 python3 bin/terraform-vsphere.py --target-vcenter legacy plan \
-  -var-file=../../inventory/vsphere/ubuntu26041-base-Content_Library.tfvars \
+  -var-file=../../inventory/vsphere/ubuntu26041-base-content_library-Content_Library-vcenter-legacy.tfvars \
   -var-file=../../inventory/vsphere/ubuntu26041-base-launch.settings.tfvars
 ```
 
 Review the plan before `apply`. Terraform state is local plaintext at
 `inventory/vsphere/terraform.tfstate`; it contains VM configuration and any
-public key supplied through GuestInfo, but not the vCenter password. Protect
-and back up the ignored `inventory/` directory.
+public key supplied through GuestInfo, but not the vCenter password. State is
+ignored by Git; protect it and back it up outside the repository.
 
 The vSphere provider can also be configured with `VSPHERE_SERVER`,
 `VSPHERE_USER`, `VSPHERE_PASSWORD`, and

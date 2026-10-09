@@ -18,6 +18,7 @@ from terraform_runner import (
     add_runner_arguments,
     read_secret as _read_secret,
     run_terraform,
+    terraform_environment,
     terraform_args_or_error,
 )
 
@@ -29,17 +30,15 @@ def _select_vcenter(
 ) -> tuple[str | None, dict[str, Any]]:
     requested = requested.strip() if requested and requested.strip() else None
     centers = data.get("vsphere_projects")
-    legacy_fields = (
-        "vcenter_hostname",
-        "vcenter_username",
-        "vcenter_password",
+    has_legacy = (
+        isinstance(data.get("vcenter_hostname"), str)
+        and bool(data["vcenter_hostname"].strip())
     )
-    has_legacy = all(field in data for field in legacy_fields)
 
     # Match dib7's selection rules: absent an explicit selector, flat
     # legacy credentials take precedence even when vsphere_projects exists.
     if requested is None and has_legacy:
-        return None, data
+        return "legacy", data
 
     if isinstance(centers, dict):
         if requested is None and len(centers) > 1:
@@ -64,9 +63,9 @@ def _select_vcenter(
     # The source Ansible Vault still accepts its original flat mapping.
     if has_legacy:
         hostname = data.get("vcenter_hostname")
-        if requested is not None and requested != str(hostname):
+        if requested is not None and requested not in {"legacy", str(hostname)}:
             raise VaultError("the selected vCenter did not match the legacy Vault entry")
-        return None, data
+        return "legacy", data
     raise VaultError(
         "Vault data must contain vsphere_projects or a legacy vCenter mapping"
     )
@@ -107,19 +106,15 @@ def _terraform_environment(
     vcenter_key: str | None = None,
     datacenter: str | None = None,
 ) -> dict[str, str]:
-    env = os.environ.copy()
-    # Provider authentication always comes from the selected Vault entry for
-    # plans and applies. Do not let inherited credentials shadow it.
-    for name in (
-        "VAULT_TOKEN",
-        "VAULT_NAMESPACE",
-        "BAO_TOKEN",
-        "VSPHERE_SERVER",
-        "VSPHERE_USER",
-        "VSPHERE_PASSWORD",
-        "VSPHERE_ALLOW_UNVERIFIED_SSL",
-    ):
-        env.pop(name, None)
+    # Provider authentication always comes from the selected Vault entry.
+    env = terraform_environment(
+        (
+            "VSPHERE_SERVER",
+            "VSPHERE_USER",
+            "VSPHERE_PASSWORD",
+            "VSPHERE_ALLOW_UNVERIFIED_SSL",
+        )
+    )
     env.pop("TF_VAR_target_vcenter_key", None)
     env.pop("TF_VAR_datacenter", None)
     if credentials:

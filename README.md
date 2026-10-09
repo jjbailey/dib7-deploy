@@ -1,34 +1,40 @@
 # dib7-deploy
 
 Terraform project for launching instances from images published by
-[dib7](../dib7). `dib7` remains responsible for building QCOW2
-images, importing them into supported clouds, and publishing their artifact
-identifiers to its image catalog.
+[`dib7`](https://github.com/jjbailey/dib7). `dib7` remains responsible for
+building QCOW2 images, importing them into supported clouds, and publishing
+their artifact identifiers to its image catalog.
 
 The initial provider scope is AWS, GCP, OpenStack, and VMware vSphere. Terraform
 will read the catalog contract documented in
-[`dib7/doc/image-catalog.md`](../dib7/doc/image-catalog.md), then use a
-selected published image to launch an instance in the corresponding
+[`doc/image-catalog.md`](https://github.com/jjbailey/dib7/blob/main/doc/image-catalog.md),
+then use a selected published image to launch an instance in the corresponding
 environment.
 
 ## Repository layout
 
 - `inventory/` holds generated or machine-specific deployment data locally.
-  Its contents are ignored by Git, apart from this folder's README.
+  Reviewed catalog tfvars and launch settings are tracked in the private
+  checkout; Terraform state, backups, plans, and provider caches are not.
+  `local/rsync-to-dib7-deploy.sh` excludes inventory from the public checkout.
 - Terraform source, reusable modules, and committed examples belong in the
   normal source folders, separate from generated inventory.
 
-The catalog is the source for published image identifiers. Keep any other
-generated inventory reproducible or backed up separately before relying on a
-local ignored copy as the only record.
+The catalog is the source for published image identifiers. Generated tfvars are
+reproducible, but review launch settings before committing them. Keep Terraform
+state backed up separately; state can contain sensitive resource attributes.
 
 ## Generate provider tfvars
 
 The scripts in `bin/` select a published image from the dib7 catalog and
-write catalog-derived tfvars under `inventory/<provider>/`. Set `AWS_TARGET_PROJECT` to your target AWS account ID, then run:
+write catalog-derived tfvars under `inventory/<provider>/`. The `--project`,
+`--region`, and `--scope` options select catalog rows; wrapper target selectors
+choose credentials from Vault. Set the shell variable `AWS_TARGET_PROJECT` to
+your target AWS account ID, then run:
 
 ```bash
-python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project ${AWS_TARGET_PROJECT}
+: "${AWS_TARGET_PROJECT:?Set the target AWS account ID}"
+python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project "${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}"
 ```
 
 See [`bin/README.md`](bin/README.md) for all provider commands and scope
@@ -54,7 +60,13 @@ Run the catalog and Vault-runner unit tests with:
 python3 -m unittest discover -s tests -v
 ```
 
-GitLab CI runs the unit tests and checks Terraform formatting in `environments/`.
+This repository currently has no tracked CI pipeline; run the unit tests and
+Terraform formatting check locally before committing:
+
+```bash
+terraform fmt -check -recursive environments/
+```
+
 See [`doc/state-management.md`](doc/state-management.md) for separate
 deployment workspaces and state backups.
 

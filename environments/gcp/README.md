@@ -17,7 +17,8 @@ It reads the service-account key from Vault and passes it through the
 environment. See [`doc/vault-gcp.md`](../../doc/vault-gcp.md) for Vault setup
 and the full launch example.
 
-Terraform stores local state at `inventory/gcp/terraform.tfstate`. The
-inventory is ignored by Git and should be backed up and protected separately.
+Terraform stores local state at `inventory/gcp/terraform.tfstate`. State is
+ignored by Git; keep it local and back it up to a secured location outside the
+repository.
 See [`doc/state-management.md`](../../doc/state-management.md) for named
 workspaces and external state backups.

@@ -105,7 +105,10 @@ class CatalogSelectionTests(unittest.TestCase):
                 scope={"vcenter": "legacy", "content_library": "Content_Library"},
             ),
         )
-        self.assertEqual(vsphere_path.name, "ubuntu26041-base-Content_Library.tfvars")
+        self.assertEqual(
+            vsphere_path.name,
+            "ubuntu26041-base-content_library-Content_Library-vcenter-legacy.tfvars",
+        )
 
     def test_generate_writes_catalog_values(self) -> None:
         row = image()

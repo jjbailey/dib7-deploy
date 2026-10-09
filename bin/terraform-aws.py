@@ -19,6 +19,7 @@ from terraform_runner import (
     add_runner_arguments,
     read_secret as _read_secret,
     run_terraform,
+    terraform_environment,
     terraform_args_or_error,
 )
 
@@ -38,6 +39,17 @@ def _required_secret_any(data: dict[str, Any], fields: list[str], path: str) -> 
 
 def _select_project(data: dict[str, Any], requested: str | None) -> dict[str, Any]:
     requested = requested.strip() if requested and requested.strip() else None
+    # Match dib7: without an explicit selector, accept the legacy flat
+    # project even when a projects map is also present.
+    if (
+        requested is None
+        and isinstance(data.get("aws_region"), str)
+        and data["aws_region"].strip()
+        and "s3_bucket" in data
+        and "vmimport_role_name" in data
+    ):
+        return data
+
     projects = data.get("aws_projects")
     if isinstance(projects, dict):
         if requested is None and len(projects) > 1:
@@ -130,18 +142,15 @@ def _temporary_credentials(args: argparse.Namespace) -> tuple[dict[str, str], st
     return result, str(identity["Account"]), f"{identity['Arn']} (expires {expiration})"
 
 def _terraform_environment(credentials: dict[str, str] | None = None) -> dict[str, str]:
-    env = os.environ.copy()
-    # The wrapper intentionally prevents Terraform from silently choosing a
-    # profile, web identity, or a secret-manager token alongside the AWS keys.
-    for name in (
-        "AWS_PROFILE",
-        "AWS_DEFAULT_PROFILE",
-        "AWS_WEB_IDENTITY_TOKEN_FILE",
-        "AWS_ROLE_ARN",
-        "BAO_TOKEN",
-        "VAULT_TOKEN",
-    ):
-        env.pop(name, None)
+    # Prevent inherited provider selectors from shadowing Vault credentials.
+    env = terraform_environment(
+        (
+            "AWS_PROFILE",
+            "AWS_DEFAULT_PROFILE",
+            "AWS_WEB_IDENTITY_TOKEN_FILE",
+            "AWS_ROLE_ARN",
+        )
+    )
     if credentials:
         env.update(credentials)
     return env

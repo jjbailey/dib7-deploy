@@ -30,24 +30,30 @@ vault policy write dib7-deploy-vault-sync policies/dib7-deploy-vault-sync.hcl
 ```
 
 The OpenStack provider receives authentication through `OS_AUTH_URL`,
-`OS_USERNAME`, `OS_PASSWORD`, `OS_PROJECT_NAME`, and optional domain and region
-variables. The runner clears inherited OpenStack authentication variables
-before setting the selected Vault values, so another sourced OpenStack
-environment cannot silently change the target.
+`OS_USERNAME`, `OS_PASSWORD`, and either `OS_PROJECT_ID` or `OS_PROJECT_NAME`,
+plus optional domain and region variables. When Vault supplies a project ID,
+the runner prefers it and omits the project name. It clears inherited
+OpenStack authentication variables before setting the selected Vault values,
+so another sourced OpenStack environment cannot silently change the target.
 
 ## Generate catalog variables and launch
 
 Generate tfvars from the current `glance_image` catalog row. Select the same
-project and region recorded in the catalog. Set `OS_TARGET_PROJECT` to that project ID before running the examples:
+project and region recorded in the catalog. Set `OS_CATALOG_PROJECT` to that
+catalog project before running the generation example. Set
+`OS_TARGET_PROJECT` separately to the project where Terraform will create the
+server; it may differ when the image is shared. These are shell variables for
+the catalog path and generator arguments. The Vault entry is selected by
+`DIB7_OPENSTACK_TARGET_PROJECT` or `--target-project`:
 
 ```bash
 python3 bin/generate-openstack-tfvars.py ubuntu26041-base \
-  --project ${OS_TARGET_PROJECT} \
+  --project ${OS_CATALOG_PROJECT} \
   --region US-WEST-OR-1
 ```
 
 This writes
-`inventory/openstack/ubuntu26041-base-project-${OS_TARGET_PROJECT}.tfvars`.
+`inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars`.
 The catalog project identifies the image owner. Terraform creates the server
 in the project selected from Vault; that can be a different project if the
 image is shared with it.
@@ -80,7 +86,7 @@ Initialize and plan from the repository root:
 ```bash
 python3 bin/terraform-openstack.py init
 python3 bin/terraform-openstack.py plan \
-  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_TARGET_PROJECT}.tfvars \
+  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars \
   -var-file=../../inventory/openstack/ubuntu26041-base-launch.settings.tfvars
 ```
 
@@ -89,10 +95,10 @@ command:
 
 ```bash
 python3 bin/terraform-openstack.py --target-project ${OS_TARGET_PROJECT} plan \
-  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_TARGET_PROJECT}.tfvars \
+  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars \
   -var-file=../../inventory/openstack/ubuntu26041-base-launch.settings.tfvars
 ```
 
 Review the plan before applying. Terraform state is plaintext at
-`inventory/openstack/terraform.tfstate`; protect and back up the ignored
-`inventory/` directory.
+`inventory/openstack/terraform.tfstate`; it is ignored by Git. Protect it and
+back it up outside the repository.

@@ -59,8 +59,8 @@ Terraform's provider runners use separate read-only policies.
 
 By default, the exact Ansible mappings are mirrored here:
 
-| Ansible source         | HashiCorp KV v2 path           |
-| ---------------------- | ------------------------------ |
+| Ansible source         | HashiCorp KV v2 path               |
+| ---------------------- | ---------------------------------- |
 | `vaults/aws.yml`       | `secret/dib7-deploy/aws`       |
 | `vaults/gcp.yml`       | `secret/dib7-deploy/gcp`       |
 | `vaults/openstack.yml` | `secret/dib7-deploy/openstack` |

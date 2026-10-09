@@ -19,6 +19,7 @@ from terraform_runner import (
     add_runner_arguments,
     read_secret as _read_secret,
     run_terraform,
+    terraform_environment,
     terraform_args_or_error,
 )
 
@@ -27,6 +28,15 @@ GCP_ROOT = REPO_ROOT / "environments" / "gcp"
 DEFAULT_SECRET_PATH = "dib7-deploy/gcp"
 def _select_project(data: dict[str, Any], requested: str | None) -> dict[str, Any]:
     requested = requested.strip() if requested and requested.strip() else None
+    # Match dib7: without an explicit selector, accept the legacy flat
+    # project even when a projects map is also present.
+    if (
+        requested is None
+        and data.get("gcp_project") is not None
+        and str(data["gcp_project"]).strip()
+    ):
+        return data
+
     projects = data.get("gcp_projects")
     if isinstance(projects, dict):
         matches = [
@@ -86,21 +96,16 @@ def _terraform_environment(
     credentials_json: str | None = None,
     project_id: str | None = None,
 ) -> dict[str, str]:
-    env = os.environ.copy()
-    # Force provider authentication through the selected Vault KV secret and
-    # keep Vault/OpenBao tokens and alternate Google Application Default
-    # Credentials sources out of Terraform's environment.
-    for name in (
-        "VAULT_TOKEN",
-        "VAULT_NAMESPACE",
-        "BAO_TOKEN",
-        "GOOGLE_APPLICATION_CREDENTIALS",
-        "GOOGLE_CLOUD_KEYFILE_JSON",
-        "GCLOUD_KEYFILE_JSON",
-        "GOOGLE_OAUTH_ACCESS_TOKEN",
-        "CLOUDSDK_AUTH_ACCESS_TOKEN",
-    ):
-        env.pop(name, None)
+    # Keep alternate Google credential sources out of Terraform's environment.
+    env = terraform_environment(
+        (
+            "GOOGLE_APPLICATION_CREDENTIALS",
+            "GOOGLE_CLOUD_KEYFILE_JSON",
+            "GCLOUD_KEYFILE_JSON",
+            "GOOGLE_OAUTH_ACCESS_TOKEN",
+            "CLOUDSDK_AUTH_ACCESS_TOKEN",
+        )
+    )
     if credentials_json is not None:
         env["GOOGLE_CREDENTIALS"] = credentials_json
     else:
