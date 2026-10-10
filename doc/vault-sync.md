@@ -85,6 +85,11 @@ matches a project key, project name, or project ID using `--target-project` or
 `openstack_auth` credentials take precedence when present, matching dib7.
 Otherwise one `openstack_projects` entry is selected automatically.
 
+Other options: `--source-file` syncs a file other than
+`dib7/vaults/<provider>.yml`, and `--vault-bin` names the HashiCorp Vault
+CLI executable. The script looks for `ansible-vault` in `$DIB7_VENV_BIN`
+(default `~/.dib7/bin`) before searching `PATH`.
+
 Create the sync policy with:
 
 ```bash

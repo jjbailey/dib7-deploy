@@ -95,11 +95,27 @@ them through Terraform. Never enable verbose process-environment dumps or AWS
 SDK logging that could expose keys.
 
 Terraform's local state remains plaintext at
-`inventory/aws/terraform.tfstate`. The wrapper flow keeps provider credentials
+`inventory/aws/terraform.tfstate` (or `inventory/aws/terraform.tfstate.d/<workspace>/`
+for a named workspace). The wrapper flow keeps provider credentials
 out of that state; it does not encrypt the state file itself. State is ignored
 by Git. Protect it and back it up outside the repository.
 
-`--role-arn`, `--session-name`, `--duration-seconds`, `--sts-region`,
-`--kv-mount`, and `--secret-path` are also available; run the wrapper with
+These options are also available, each with an environment variable:
+
+| Option                  | Environment variable                 | Default                       |
+| ----------------------- | ------------------------------------ | ----------------------------- |
+| `--role-arn`            | `DIB7_AWS_ASSUME_ROLE_ARN`           | none (uses `GetSessionToken`) |
+| `--session-name`        | `DIB7_AWS_SESSION_NAME`              | `dib7-deploy`             |
+| `--duration-seconds`    | `DIB7_AWS_SESSION_DURATION_SECONDS`  | 3600                          |
+| `--sts-region`          | `DIB7_AWS_STS_REGION`                | `us-west-2`                   |
+| `--access-key-field`    | `DIB7_VAULT_AWS_ACCESS_KEY_FIELD`    | `aws_access_key_id`           |
+| `--secret-key-field`    | `DIB7_VAULT_AWS_SECRET_KEY_FIELD`    | `aws_secret_access_key`       |
+| `--session-token-field` | `DIB7_VAULT_AWS_SESSION_TOKEN_FIELD` | none                          |
+| `--kv-mount`            | `DIB7_VAULT_KV_MOUNT`                | `secret`                      |
+| `--secret-path`         | `DIB7_VAULT_AWS_SECRET_PATH`         | `dib7-deploy/aws`         |
+
+The duration must be at least 900 seconds, and at most 43200 when assuming a
+role or 129600 for a session token. The session name, used with a role, must be
+2–64 characters from letters, digits, and `_+=,.@-`. Run the wrapper with
 `--help` for the full options. `init`, `fmt`, `validate`, and Terraform `state`
 commands do not fetch AWS credentials.

@@ -5,40 +5,71 @@ Terraform project for launching instances from images published by
 building QCOW2 images, importing them into supported clouds, and publishing
 their artifact identifiers to its image catalog.
 
-The initial provider scope is AWS, GCP, OpenStack, and VMware vSphere. Terraform
-will read the catalog contract documented in
+This project supports AWS, GCP, OpenStack, and VMware vSphere. The tfvars
+generators read the catalog contract documented in
 [`doc/image-catalog.md`](https://github.com/jjbailey/dib7/blob/main/doc/image-catalog.md),
-then use a selected published image to launch an instance in the corresponding
-environment.
+and each provider's Terraform root uses the selected published image to launch
+an instance in the corresponding environment.
+
+## Prerequisites
+
+- Terraform 1.5.0 or later (the provider roots require `>= 1.5.0`).
+- Python 3 with the dependencies in `requirements.txt` (`boto3` for the AWS
+  wrapper, `PyYAML` for the Vault sync script). The docs install them into
+  `~/.dib7` with `~/.dib7/bin/python -m pip install -r requirements.txt`.
+- The HashiCorp `vault` CLI, configured as described in
+  [`doc/vault-sync.md`](doc/vault-sync.md), and `ansible-vault` for syncing.
+- A sibling `dib7` checkout, which supplies the image catalog and the
+  encrypted provider vaults.
 
 ## Repository layout
 
+- `bin/` holds the catalog-to-tfvars generators, the Vault-backed Terraform
+  wrappers, and the Vault sync and state backup scripts. See
+  [`bin/README.md`](bin/README.md).
+- `environments/` holds one Terraform root per provider: `aws`, `gcp`,
+  `openstack`, and `vsphere`.
+- `doc/` holds the Vault and state-management guides.
+- `policies/` holds the HashiCorp Vault policies for the wrappers and the sync
+  command.
 - `inventory/` holds generated or machine-specific deployment data locally.
   Reviewed catalog tfvars and launch settings are tracked in the private
   checkout; Terraform state, backups, plans, and provider caches are not.
   `local/rsync-to-dib7-deploy.sh` excludes inventory from the public checkout.
-- Terraform source, reusable modules, and committed examples belong in the
-  normal source folders, separate from generated inventory.
+  See [`inventory/README.md`](inventory/README.md).
+- `local/` holds the private export script and manual cloud smoke tests. See
+  [`local/README.md`](local/README.md).
+- `tests/` holds the unit tests.
 
 The catalog is the source for published image identifiers. Generated tfvars are
 reproducible, but review launch settings before committing them. Keep Terraform
 state backed up separately; state can contain sensitive resource attributes.
 
-## Generate provider tfvars
+## Browse and deploy a published image
 
-The scripts in `bin/` select a published image from the dib7 catalog and
-write catalog-derived tfvars under `inventory/<provider>/`. The `--project`,
-`--region`, and `--scope` options select catalog rows; wrapper target selectors
-choose credentials from Vault. Set the shell variable `AWS_TARGET_PROJECT` to
-your target AWS account ID, then run:
+From the repository root, list all published catalog entries:
 
 ```bash
-: "${AWS_TARGET_PROJECT:?Set the target AWS account ID}"
-python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project "${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}"
+python3 ../dib7/bin/list-image-catalog.py
 ```
 
-See [`bin/README.md`](bin/README.md) for all provider commands and scope
-selectors.
+Filter the report to find a logical image in a provider, for example:
+
+```bash
+python3 ../dib7/bin/list-image-catalog.py \
+  --provider openstack --image ubuntu26041-base
+```
+
+Choose the entry whose provider, project, region, and scope match the target
+environment. The report includes its version and artifact ID. Each provider's
+tfvars generator selects the newest published entry for the image and scope;
+review the generated `image_version` and `image_artifact_id` before planning.
+The provider READMEs show the catalog lookup and generator command, while the
+Vault guides cover credentials, launch settings, and plan/apply commands.
+
+See [`bin/README.md`](bin/README.md) for generator selectors and
+[`doc/state-management.md`](doc/state-management.md) for separate Terraform
+workspaces.
 
 The launch environments are [AWS](environments/aws/README.md),
 [GCP](environments/gcp/README.md), [OpenStack](environments/openstack/README.md),
