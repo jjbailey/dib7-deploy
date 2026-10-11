@@ -23,6 +23,13 @@ Terraform selects one entry automatically when only one vCenter is configured.
 For multiple entries, choose an Ansible key or hostname with
 `--target-vcenter`.
 
+The runner also passes the selected entry's key and datacenter to Terraform as
+`TF_VAR_target_vcenter_key` and `TF_VAR_datacenter` (the datacenter defaults to
+`Datacenter`). The plan fails if the catalog scope's `vcenter` value differs
+from the selected key, so a catalog entry for one vCenter cannot be cloned
+through credentials for another. An entry in flat legacy form has the key
+`legacy`.
+
 Create a read-only policy for the Terraform runner:
 
 ```bash
@@ -80,6 +87,7 @@ ssh_public_key = "ssh-ed25519 AAAA... workstation"
 # template_folder = "Templates"
 # guest_id  = "ubuntu64Guest" # defaults to the source template's guest ID
 # scsi_type = "lsilogic"
+# thin_provisioned = true # default; set false for thick provisioning
 ```
 
 The optional SSH key uses cloud-init's VMware GuestInfo datasource; the guest
@@ -90,7 +98,7 @@ the catalog.
 Initialize and plan from the repository root:
 
 ```bash
-terraform -chdir=environments/vsphere init
+python3 bin/terraform-vsphere.py init
 python3 bin/terraform-vsphere.py plan \
   -var-file=../../inventory/vsphere/ubuntu26041-base-content_library-Content_Library-vcenter-legacy.tfvars \
   -var-file=../../inventory/vsphere/ubuntu26041-base-launch.settings.tfvars
@@ -106,7 +114,8 @@ python3 bin/terraform-vsphere.py --target-vcenter legacy plan \
 ```
 
 Review the plan before `apply`. Terraform state is local plaintext at
-`inventory/vsphere/terraform.tfstate`; it contains VM configuration and any
+`inventory/vsphere/terraform.tfstate` (or under
+`inventory/vsphere/terraform.tfstate.d/<workspace>/` for a named workspace); it contains VM configuration and any
 public key supplied through GuestInfo, but not the vCenter password. State is
 ignored by Git; protect it and back it up outside the repository.
 

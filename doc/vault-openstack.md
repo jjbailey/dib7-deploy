@@ -36,6 +36,11 @@ the runner prefers it and omits the project name. It clears inherited
 OpenStack authentication variables before setting the selected Vault values,
 so another sourced OpenStack environment cannot silently change the target.
 
+When the selected Vault entry sets `region_name`, the runner also passes it to
+Terraform as `TF_VAR_target_region`. The plan then fails if the catalog's
+`image_region` differs, so a Vault entry for one region cannot launch an image
+recorded for another. Omit `region_name` from the Vault entry to skip the check.
+
 ## Generate catalog variables and launch
 
 Generate tfvars from the current `glance_image` catalog row. Select the same
@@ -76,6 +81,9 @@ network_name  = "REPLACE_WITH_NETWORK"
 security_groups = ["default"]
 ```
 
+Other optional settings are `availability_zone` (default: scheduler's choice)
+and `metadata` (additional Nova server metadata, default `{}`).
+
 Set exactly one of `network_name` and `network_id`. The flavor and network
 must exist in the selected project and region. The key pair defaults to the
 catalog SSH username; set `key_pair` explicitly to use a differently named
@@ -100,5 +108,6 @@ python3 bin/terraform-openstack.py --target-project ${OS_TARGET_PROJECT} plan \
 ```
 
 Review the plan before applying. Terraform state is plaintext at
-`inventory/openstack/terraform.tfstate`; it is ignored by Git. Protect it and
+`inventory/openstack/terraform.tfstate` (or under
+`inventory/openstack/terraform.tfstate.d/<workspace>/` for a named workspace); it is ignored by Git. Protect it and
 back it up outside the repository.

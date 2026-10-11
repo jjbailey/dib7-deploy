@@ -2,10 +2,12 @@
 
 Each provider script selects the latest `published` catalog row for a logical
 image and writes a tfvars file under the private top-level `inventory/`
-directory. AWS selects the newest numeric `version` in the selected catalog
-scope. GCP, OpenStack, and vSphere normally have one current row per image and
-scope; all providers fail if multiple projects, regions, or scopes match until
-selectors are supplied. The selector values below are shell variables that
+directory. When several published rows match, every provider selects the
+newest numeric (epoch) `version` in the selected catalog scope; it fails if
+multiple rows have non-numeric versions or the latest version is duplicated.
+AWS commonly has several versions per image, while GCP, OpenStack, and vSphere
+normally have one current row per image and scope. All providers fail if
+multiple projects, regions, or scopes match until selectors are supplied. The selector values below are shell variables that
 you set for the catalog owner/location. The generators require explicit
 `--project` values where shown; they do not read the wrapper's `DIB7_*`
 selectors. Catalog owner/project can differ from the deployment target.

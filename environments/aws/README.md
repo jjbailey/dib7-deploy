@@ -12,8 +12,10 @@ comes from the selected catalog image. The catalog's `image_project` is kept as
 image-owner metadata; it does not restrict the AWS account used to launch the
 instance. See [`doc/vault-aws.md`](../../doc/vault-aws.md) for setup.
 
-Terraform's local state file lives at `inventory/aws/terraform.tfstate`, beside
-the generated tfvars and outside the source tree. Back up that state with the
+Terraform's local state file lives at `inventory/aws/terraform.tfstate` (default
+workspace; named workspaces use
+`inventory/aws/terraform.tfstate.d/<workspace>/terraform.tfstate`), beside the
+generated tfvars and outside the source tree. Back up that state with the
 local inventory it belongs to. See [`doc/state-management.md`](../../doc/state-management.md)
 for named workspaces and external state backups.
 
@@ -23,20 +25,54 @@ From the repository root, install the AWS helper dependency into `~/.dib7`:
 ~/.dib7/bin/python -m pip install -r requirements.txt
 ```
 
-Set `AWS_TARGET_PROJECT` to the intended AWS account ID. Then initialize and plan with the generated file:
+## Find and deploy a published image
+
+Use the `dib7` catalog report to see the published AWS images and their
+versions. From the `dib7-deploy` repository root:
 
 ```bash
-~/.dib7/bin/python bin/terraform-aws.py init
-~/.dib7/bin/python bin/terraform-aws.py plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars \
-  -var='instance_name=ubuntu26041-test' \
-  -var='instance_type=t3.small'
+python3 ../dib7/bin/list-image-catalog.py \
+  --provider aws --image ubuntu24045-base
 ```
 
+For example, to deploy `ubuntu24045-base` version `1791540001`, generate its
+AWS variables and check that the generator selected that version. The
+generator selects the newest published row for the requested image, project,
+and region; the check stops this example if that selection has changed.
+
+```bash
+set -e
+: "${AWS_TARGET_PROJECT:?Set the target AWS account ID}"
+: "${AWS_CATALOG_PROJECT:?Set the AWS account ID that owns the AMI}"
+AWS_REGION=us-west-2
+IMAGE=ubuntu24045-base
+VERSION=1791540001
+VARSFILE="../../inventory/aws/${IMAGE}-project-${AWS_CATALOG_PROJECT}.tfvars"
+WORKSPACE="aws-${AWS_TARGET_PROJECT}-${AWS_REGION}-${IMAGE}"
+
+python3 bin/generate-aws-tfvars.py "$IMAGE" \
+  --region "$AWS_REGION" --project "$AWS_CATALOG_PROJECT"
+grep -Fx "image_version = \"$VERSION\"" \
+  "inventory/aws/${IMAGE}-project-${AWS_CATALOG_PROJECT}.tfvars" > /dev/null
+
+python3 bin/terraform-aws.py init
+python3 bin/terraform-aws.py workspace select -or-create "$WORKSPACE"
+python3 bin/terraform-aws.py --target-project="$AWS_TARGET_PROJECT" plan \
+  -var-file="$VARSFILE" -var='instance_name=ubuntu24045-example'
+```
+
+Review the plan, then run the same command with `apply` instead of `plan`.
+This example uses the default instance type and network settings. Supply
+launch settings for the intended subnet, security groups, public IP, and key
+pair when needed; see the guidance below. `AWS_CATALOG_PROJECT` identifies
+the AMI owner and can differ from `AWS_TARGET_PROJECT`, the account where the
+instance will be created.
+
 Set `subnet_id` and `vpc_security_group_ids` to select an explicit network.
-Without them, AWS selects the default network where available. In this AWS
-account, the default security group only allows inbound traffic from other
-instances using that same group; it does not permit public SSH. For SSH access,
+Without them, AWS selects the default network where available. A default
+security group commonly allows inbound traffic only from other instances using
+that same group, which does not permit public SSH; check the group in your
+account. For SSH access,
 use a subnet with a public IP and internet-gateway route, a security group that
 allows TCP port 22 from your client CIDR, and an EC2 key pair you have the
 private key for. If the catalog provides `image_ssh_username` and `key_name` is
@@ -65,3 +101,19 @@ associate_public_ip_address = true
 
 Pass both files to Terraform with `-var-file`. The launch settings can also be
 provided as individual `-var` arguments when running a one-off plan.
+
+### Launch variables
+
+All are optional. `instance_name` and `key_name` default from the catalog
+(logical image name and SSH username).
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `instance_name` | image logical name | EC2 `Name` tag |
+| `instance_type` | `t3.small` | must support the image architecture |
+| `subnet_id` | AWS default network | VPC subnet |
+| `vpc_security_group_ids` | AWS default group | security groups to attach |
+| `key_name` | catalog SSH username | existing EC2 key pair |
+| `associate_public_ip_address` | AWS default | public IPv4 override |
+| `iam_instance_profile` | none | existing instance profile name |
+| `tags` | `{}` | additional instance tags |

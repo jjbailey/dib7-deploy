@@ -91,7 +91,7 @@ class ProviderSelectionTests(unittest.TestCase):
             "vsphere_projects": {"mapped": {"vcenter_hostname": "other.example.test"}},
         }
         key, selected = self.vsphere._select_vcenter(data, None)
-        self.assertIsNone(key)
+        self.assertEqual(key, "legacy")
         self.assertIs(selected, data)
 
     def test_vcenter_mapping_can_be_selected_by_hostname(self) -> None:

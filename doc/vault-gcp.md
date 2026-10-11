@@ -57,8 +57,8 @@ Create a local launch settings file such as
 ```hcl
 zone             = "us-west1-b"
 instance_name    = "ubuntu26041-test"
-machine_type      = "e2-medium"
-network           = "default"
+machine_type     = "e2-medium"
+network          = "default"
 assign_public_ip = true
 
 # Optional override; defaults to gcp_project from the selected Ansible Vault entry.
@@ -69,10 +69,17 @@ assign_public_ip = true
 ssh_public_key = "ssh-ed25519 AAAA... workstation"
 ```
 
+Other optional launch settings, with their defaults, are `subnetwork` (none),
+`boot_disk_size_gb` (inherit the image size), `boot_disk_type` (`pd-balanced`),
+`network_tags` (`[]`), `labels` and `metadata` (`{}`), `service_account_email`
+(none) with `service_account_scopes` (`cloud-platform`), and
+`allow_stopping_for_update` (`false`). Set `network` to `null` when selecting
+only a `subnetwork`.
+
 Initialize and plan from the repository root:
 
 ```bash
-terraform -chdir=environments/gcp init
+python3 bin/terraform-gcp.py init
 python3 bin/terraform-gcp.py plan \
   -var-file="../../inventory/gcp/ubuntu26041-base-project-${GCP_CATALOG_PROJECT}.tfvars" \
   -var-file=../../inventory/gcp/ubuntu26041-base-launch.settings.tfvars
@@ -97,7 +104,9 @@ catalog and installs that key through instance metadata. You can instead use
 OS Login or keys already managed by the project and leave `ssh_public_key`
 unset.
 
-Terraform state is local and plaintext at `inventory/gcp/terraform.tfstate`.
+Terraform state is local and plaintext at `inventory/gcp/terraform.tfstate`
+(or under `inventory/gcp/terraform.tfstate.d/<workspace>/` for a named
+workspace).
 It records the instance and its metadata, but not the service-account key used
 to authenticate the provider. State is ignored by Git; protect it and back it
 up outside the repository. Plans and applies fetch the key anew from Vault; `init`, `fmt`,
