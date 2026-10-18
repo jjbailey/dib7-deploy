@@ -43,6 +43,10 @@ from the encrypted source with:
 ~/.dib7/bin/python bin/sync-ansible-vault-to-hashicorp.py vsphere
 ```
 
+Attach the vSphere read policy to the Vault identity or auth role used by the
+Terraform operator. The identity used to sync credentials needs the separate
+`dib7-deploy-vault-sync` policy; see [`vault-sync.md`](vault-sync.md).
+
 The selected entry's `validate_certs` defaults to `true`. The provider will
 verify the vCenter certificate unless the Ansible Vault entry explicitly sets
 `validate_certs: false`.
