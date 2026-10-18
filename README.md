@@ -14,9 +14,15 @@ an instance in the corresponding environment.
 ## Prerequisites
 
 - Terraform 1.5.0 or later (the provider roots require `>= 1.5.0`).
-- Python 3 with the dependencies in `requirements.txt` (`boto3` for the AWS
-  wrapper, `PyYAML` for the Vault sync script). The docs install them into
-  `~/.dib7` with `~/.dib7/bin/python -m pip install -r requirements.txt`.
+- Python 3.10 or later with the dependencies in `requirements.txt` (`boto3`
+  for the AWS wrapper, `PyYAML` for the Vault sync script). Create the
+  `~/.dib7` environment once, then install the dependencies:
+
+  ```bash
+  python3 -m venv ~/.dib7
+  ~/.dib7/bin/python -m pip install -r requirements.txt
+  ```
+
 - The HashiCorp `vault` CLI, configured as described in
   [`doc/vault-sync.md`](doc/vault-sync.md), and `ansible-vault` for syncing.
 - A sibling `dib7` checkout, which supplies the image catalog and the

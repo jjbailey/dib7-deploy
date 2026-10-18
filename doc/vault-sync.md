@@ -55,7 +55,10 @@ the decrypted YAML, then streams it to the Vault CLI over stdin. It does not
 print credential values or write decrypted data to a temporary file. Use
 `--dry-run` to decrypt and validate without writing. The HashiCorp Vault token
 used for sync needs `create` and `update` access to the four KV v2 data paths;
-Terraform's provider runners use separate read-only policies.
+Terraform's provider runners use separate read-only policies. Writing a policy
+only creates it in Vault; attach the sync policy to the identity or auth role
+used for syncing, and attach each provider's read policy to the identity or
+auth role used to run Terraform.
 
 By default, the exact Ansible mappings are mirrored here:
 

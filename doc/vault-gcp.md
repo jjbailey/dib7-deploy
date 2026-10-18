@@ -34,6 +34,9 @@ no write or delete access. The sync command writes the complete `gcp_projects`
 mapping, including each `service_account_key`, to
 `secret/dib7-deploy/gcp`. Set `DIB7_VAULT_GCP_SECRET_PATH` or
 `DIB7_VAULT_KV_MOUNT` to use another location.
+Attach this read policy to the Vault identity or auth role used by the
+Terraform operator. The identity used to sync credentials needs the separate
+`dib7-deploy-vault-sync` policy; see [`vault-sync.md`](vault-sync.md).
 
 ## Generate catalog variables and launch
 

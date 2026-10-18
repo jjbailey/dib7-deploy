@@ -29,6 +29,10 @@ vault policy write dib7-deploy-openstack-read policies/dib7-deploy-openstack-rea
 vault policy write dib7-deploy-vault-sync policies/dib7-deploy-vault-sync.hcl
 ```
 
+Attach the OpenStack read policy to the Vault identity or auth role used by
+the Terraform operator. Attach the sync policy to the identity used to mirror
+Ansible Vault data; see [`vault-sync.md`](vault-sync.md).
+
 The OpenStack provider receives authentication through `OS_AUTH_URL`,
 `OS_USERNAME`, `OS_PASSWORD`, and either `OS_PROJECT_ID` or `OS_PROJECT_NAME`,
 plus optional domain and region variables. When Vault supplies a project ID,
