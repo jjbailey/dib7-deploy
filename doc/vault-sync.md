@@ -75,8 +75,9 @@ provider path with `--secret-path` or `DIB7_VAULT_AWS_SECRET_PATH` /
 `DIB7_VAULT_VSPHERE_SECRET_PATH`; keep the
 corresponding Terraform runner setting aligned with that path.
 
-The AWS and GCP runners select an entry from `aws_projects` or `gcp_projects`
-using its Ansible key or provider project/account ID. The vSphere runner
+The AWS runner selects an entry from `aws_projects` using its Ansible key, AWS
+account ID, or profile. The GCP runner selects from `gcp_projects` by Ansible
+key or GCP project ID. The vSphere runner
 matches explicit `--target-vcenter` selectors against a `vsphere_projects`
 key or hostname. With no explicit selector, flat legacy vCenter credentials
 take precedence when present, matching dib7; otherwise a single mapped
