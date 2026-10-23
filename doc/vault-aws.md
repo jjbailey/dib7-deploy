@@ -1,8 +1,10 @@
 # Vault credentials for AWS Terraform
 
 The AWS Terraform wrapper reads the selected project entry from HashiCorp
-Vault KV v2, exchanges its bootstrap key for temporary AWS STS credentials,
-and starts Terraform with those credentials in its environment. HashiCorp
+Vault KV v2 and starts Terraform with AWS credentials in its environment. It
+assumes the configured role when a role ARN is supplied. Without a role ARN, it
+uses a supplied session token directly or requests a session token for long-term
+IAM-user credentials. HashiCorp
 Vault mirrors `dib7/vaults/aws.yml`; that Ansible Vault file is the source
 of truth. See [`vault-sync.md`](vault-sync.md) for the sync command. Terraform
 does not read the base key directly, and no credential is written to a tfvars
@@ -19,7 +21,8 @@ file or returned through a Terraform data resource.
   relevant permission is `sts:AssumeRole`, with deployment permissions granted
   to the assumed role. If no role ARN is supplied, the wrapper calls
   `sts:GetSessionToken`; those credentials retain the base IAM user's
-  permissions.
+  permissions. If the stored key already has an `aws_session_token`, that
+  existing session is used directly when no role ARN is supplied.
 
 Create a dedicated Vault policy. KV v2 read permissions are granted on the
 `data/` API path:
@@ -67,9 +70,9 @@ scope, but omit the catalog region. The generated variables still record the
 image region. Use `--output` if you need to keep separate tfvars files for
 regional catalog variants.
 
-If `aws_projects` contains multiple entries, select the same key or account ID
-used in Ansible with `--target-project` before the Terraform command, or set
-`DIB7_AWS_TARGET_PROJECT`:
+If `aws_projects` contains multiple entries, select the same key, account ID, or
+profile used in Ansible with `--target-project` before the Terraform command,
+or set `DIB7_AWS_TARGET_PROJECT`:
 
 ```bash
 ~/.dib7/bin/python bin/terraform-aws.py --target-project ${AWS_TARGET_PROJECT} plan \
@@ -86,9 +89,11 @@ export DIB7_AWS_ASSUME_ROLE_ARN=arn:aws:iam::${AWS_TARGET_PROJECT}:role/dib7-tf-
   -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
 ```
 
-The wrapper obtains fresh credentials for each plan or apply invocation, so
-the same wrapper can apply a saved plan later without preserving credentials in
-that plan. It strips Vault and OpenBao tokens from Terraform's environment.
+The wrapper resolves credentials for each plan or apply invocation, so the
+same wrapper can apply a saved plan later without preserving credentials in
+that plan. When it uses long-term IAM-user credentials, it requests a new STS
+session; supplied session credentials are passed through as-is, and assumed-role
+credentials are obtained through `AssumeRole`. It strips Vault and OpenBao tokens from Terraform's environment.
 Temporary AWS credentials are passed only through process memory and the
 Terraform child environment; the wrapper does not write them to disk or return
 them through Terraform. Never enable verbose process-environment dumps or AWS
@@ -116,6 +121,8 @@ These options are also available, each with an environment variable:
 
 The duration must be at least 900 seconds, and at most 43200 when assuming a
 role or 129600 for a session token. The session name, used with a role, must be
-2–64 characters from letters, digits, and `_+=,.@-`. Run the wrapper with
+2–64 characters from letters, digits, and `_+=,.@-`. When a session token is
+supplied without assuming a role, that token is used as-is and the duration
+setting does not renew or extend it. Run the wrapper with
 `--help` for the full options. `init`, `fmt`, `validate`, and Terraform `state`
 commands do not fetch AWS credentials.
