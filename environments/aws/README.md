@@ -6,8 +6,11 @@ launch settings such as instance type, subnet, security groups, key pair, and
 instance profile are supplied separately.
 
 Use [`bin/terraform-aws.py`](../../bin/terraform-aws.py) to run plans and
-applies. It reads the AWS bootstrap key from Vault and supplies temporary STS
-credentials to Terraform through the process environment. The provider region
+applies. It reads AWS credentials from Vault, reuses a supplied session token
+or obtains a session through `GetSessionToken` or `AssumeRole`, then passes
+those credentials to Terraform through the process environment. When an account
+ID is available from the target, Vault entry, or role ARN, it checks the STS
+identity against that account before Terraform runs. The provider region
 comes from the selected catalog image. The catalog's `image_project` is kept as
 image-owner metadata; it does not restrict the AWS account used to launch the
 instance. See [`doc/vault-aws.md`](../../doc/vault-aws.md) for setup.
@@ -107,13 +110,13 @@ provided as individual `-var` arguments when running a one-off plan.
 All are optional. `instance_name` and `key_name` default from the catalog
 (logical image name and SSH username).
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `instance_name` | image logical name | EC2 `Name` tag |
-| `instance_type` | `t3.small` | must support the image architecture |
-| `subnet_id` | AWS default network | VPC subnet |
-| `vpc_security_group_ids` | AWS default group | security groups to attach |
-| `key_name` | catalog SSH username | existing EC2 key pair |
-| `associate_public_ip_address` | AWS default | public IPv4 override |
-| `iam_instance_profile` | none | existing instance profile name |
-| `tags` | `{}` | additional instance tags |
+| Variable                      | Default              | Purpose                             |
+| ----------------------------- | -------------------- | ----------------------------------- |
+| `instance_name`               | image logical name   | EC2 `Name` tag                      |
+| `instance_type`               | `t3.small`           | must support the image architecture |
+| `subnet_id`                   | AWS default network  | VPC subnet                          |
+| `vpc_security_group_ids`      | AWS default group    | security groups to attach           |
+| `key_name`                    | catalog SSH username | existing EC2 key pair               |
+| `associate_public_ip_address` | AWS default          | public IPv4 override                |
+| `iam_instance_profile`        | none                 | existing instance profile name      |
+| `tags`                        | `{}`                 | additional instance tags            |

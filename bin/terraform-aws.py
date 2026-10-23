@@ -2,7 +2,7 @@
 # bin/terraform-aws.py
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 
-"""Run the AWS Terraform root using short-lived credentials fetched via Vault."""
+"""Run AWS Terraform with credentials read from Vault, optionally exchanged through STS."""
 
 from __future__ import annotations
 
@@ -54,20 +54,24 @@ def _select_project(data: dict[str, Any], requested: str | None) -> dict[str, An
     if isinstance(projects, dict):
         if requested is None and len(projects) > 1:
             raise VaultError("multiple AWS projects are in Vault; specify --target-project")
-        matches = [
-            entry
-            for key, entry in projects.items()
-            if isinstance(entry, dict)
-            and (
-                requested is None
-                or requested
-                in {
-                    str(key),
-                    str(entry.get("aws_account_id", "")),
-                    str(entry.get("project_id", "")),
-                }
-            )
-        ]
+        matches = []
+        for key, entry in projects.items():
+            if not isinstance(entry, dict):
+                continue
+            account_id = entry.get("aws_account_id")
+            if not isinstance(account_id, str) or not account_id.strip():
+                account_id = entry.get("account_id")
+            profile = entry.get("aws_profile")
+            if not isinstance(profile, str) or not profile.strip():
+                profile = entry.get("profile")
+            aliases = {
+                str(key),
+                str(account_id or ""),
+                str(entry.get("project_id", "")),
+                str(profile or ""),
+            }
+            if requested is None or requested in aliases:
+                matches.append(entry)
         if len(matches) != 1:
             raise VaultError("the selected AWS project did not match exactly one Vault entry")
         return matches[0]
@@ -118,15 +122,22 @@ def _temporary_credentials(args: argparse.Namespace) -> tuple[dict[str, str], st
     sts = base_session.client("sts")
     duration = {"DurationSeconds": args.duration_seconds}
     if args.role_arn:
-        response = sts.assume_role(
+        credentials = sts.assume_role(
             RoleArn=args.role_arn,
             RoleSessionName=args.session_name,
             **duration,
-        )
+        )["Credentials"]
+    elif session_token:
+        # These are already temporary credentials. GetSessionToken requires
+        # long-term IAM-user credentials, so pass them through unchanged.
+        credentials = {
+            "AccessKeyId": access_key,
+            "SecretAccessKey": secret_key,
+            "SessionToken": session_token,
+        }
     else:
-        response = sts.get_session_token(**duration)
+        credentials = sts.get_session_token(**duration)["Credentials"]
 
-    credentials = response["Credentials"]
     result = {
         "AWS_ACCESS_KEY_ID": str(credentials["AccessKeyId"]),
         "AWS_SECRET_ACCESS_KEY": str(credentials["SecretAccessKey"]),
@@ -138,8 +149,43 @@ def _temporary_credentials(args: argparse.Namespace) -> tuple[dict[str, str], st
         aws_session_token=result["AWS_SESSION_TOKEN"],
         region_name=args.sts_region,
     ).client("sts").get_caller_identity()
-    expiration = credentials["Expiration"].isoformat()
-    return result, str(identity["Account"]), f"{identity['Arn']} (expires {expiration})"
+
+    expected_account_ids = set()
+    requested = args.target_project.strip() if args.target_project else ""
+    if re.fullmatch(r"\d{12}", requested):
+        expected_account_ids.add(requested)
+    configured_account = project.get("aws_account_id")
+    if not isinstance(configured_account, str) or not configured_account.strip():
+        configured_account = project.get("account_id")
+    if configured_account is not None:
+        configured_account = str(configured_account).strip()
+        if re.fullmatch(r"\d{12}", configured_account):
+            expected_account_ids.add(configured_account)
+    if args.role_arn:
+        role_account = re.match(r"^arn:[^:]+:iam::(\d{12}):role/", args.role_arn)
+        if role_account:
+            expected_account_ids.add(role_account.group(1))
+    if len(expected_account_ids) > 1:
+        raise VaultError(
+            "AWS target account selectors disagree: "
+            + ", ".join(sorted(expected_account_ids))
+        )
+    if expected_account_ids:
+        expected_account = next(iter(expected_account_ids))
+        actual_account = str(identity["Account"])
+        if actual_account != expected_account:
+            raise VaultError(
+                f"authenticated AWS account {actual_account} does not match "
+                f"the selected target account {expected_account}"
+            )
+
+    expiration = credentials.get("Expiration")
+    identity_text = str(identity["Arn"])
+    if expiration is not None:
+        identity_text += f" (expires {expiration.isoformat()})"
+    else:
+        identity_text += " (using supplied session credentials)"
+    return result, str(identity["Account"]), identity_text
 
 def _terraform_environment(credentials: dict[str, str] | None = None) -> dict[str, str]:
     # Prevent inherited provider selectors from shadowing Vault credentials.
@@ -157,7 +203,10 @@ def _terraform_environment(credentials: dict[str, str] | None = None) -> dict[st
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Run Terraform for AWS with temporary credentials obtained through Vault KV."
+        description=(
+            "Run Terraform with AWS credentials read from Vault KV and optionally "
+            "exchanged through STS."
+        ),
     )
     parser.add_argument(
         "--access-key-field",
@@ -177,12 +226,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--target-project",
         default=os.environ.get("DIB7_AWS_TARGET_PROJECT"),
-        help="Ansible Vault project key or AWS account ID (required when Vault has multiple projects)",
+        help=(
+            "Ansible Vault project key, AWS account ID, or profile (required when "
+            "Vault has multiple projects)"
+        ),
     )
     parser.add_argument(
         "--role-arn",
         default=os.environ.get("DIB7_AWS_ASSUME_ROLE_ARN"),
-        help="optional role to assume; defaults to a session token for the base IAM user",
+        help=(
+            "optional role to assume; without a role, supplied session credentials "
+            "are reused or a token is requested"
+        ),
     )
     parser.add_argument(
         "--session-name",

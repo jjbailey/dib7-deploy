@@ -13,6 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 NO_CREDENTIAL_COMMANDS = frozenset(
     {
@@ -82,19 +83,53 @@ def terraform_args_or_error(
 
 def read_secret(mount: str, path: str) -> dict[str, Any]:
     """Read an object from a Vault KV v2 mount without printing its contents."""
+    vault_environment = os.environ.copy()
+    vault_address = urlparse(vault_environment.get("VAULT_ADDR", ""))
+    local_vault = (
+        vault_address.scheme == "https"
+        and vault_address.hostname in {"localhost", "127.0.0.1"}
+    )
+    if local_vault and not vault_environment.get("VAULT_CACERT"):
+        local_ca = Path.home() / ".config" / "vault" / "dib7-local-vault-ca.crt"
+        if local_ca.is_file():
+            vault_environment["VAULT_CACERT"] = str(local_ca)
+
+    command = ["vault", "kv", "get", "-format=json", f"-mount={mount}", path]
     try:
         result = subprocess.run(
-            ["vault", "kv", "get", "-format=json", f"-mount={mount}", path],
+            command,
             check=True,
             capture_output=True,
             text=True,
-            env=os.environ.copy(),
+            env=vault_environment,
         )
     except FileNotFoundError as exc:
         raise VaultError("vault CLI was not found on PATH") from exc
     except subprocess.CalledProcessError as exc:
         detail = exc.stderr.strip() or exc.stdout.strip() or f"exit status {exc.returncode}"
-        raise VaultError(f"Vault could not read {mount}/{path}: {detail}") from exc
+        local_token = Path.home() / ".config" / "vault" / "dib7-local-read-token"
+        if local_vault and "invalid token" in detail.lower() and local_token.is_file():
+            refreshed_token = local_token.read_text().strip()
+            if refreshed_token and refreshed_token != vault_environment.get("VAULT_TOKEN"):
+                vault_environment["VAULT_TOKEN"] = refreshed_token
+                try:
+                    result = subprocess.run(
+                        command,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        env=vault_environment,
+                    )
+                except subprocess.CalledProcessError as retry_exc:
+                    detail = (
+                        retry_exc.stderr.strip()
+                        or retry_exc.stdout.strip()
+                        or f"exit status {retry_exc.returncode}"
+                    )
+                else:
+                    detail = None
+        if detail is not None:
+            raise VaultError(f"Vault could not read {mount}/{path}: {detail}") from exc
 
     try:
         payload = json.loads(result.stdout)
