@@ -3,6 +3,10 @@ path "secret/data/dib7-deploy/aws" {
   capabilities = ["create", "update"]
 }
 
+path "secret/data/dib7-deploy/azure" {
+  capabilities = ["create", "update"]
+}
+
 path "secret/data/dib7-deploy/gcp" {
   capabilities = ["create", "update"]
 }

@@ -68,6 +68,20 @@ def _read_ansible_vault(provider: str, source_file: Path) -> dict[str, Any]:
     if not isinstance(document, dict):
         raise SyncError(f"decrypted {provider} vault must contain a YAML mapping")
 
+    if provider == "azure":
+        # Azure credential field names vary between Ansible collections and
+        # Terraform conventions, so validate the document as a non-empty
+        # mapping without imposing a provider-specific field name.
+        if not document:
+            raise SyncError(f"{source_file} must contain a non-empty Azure credentials mapping")
+        entries = document.get("azure_projects")
+        if entries is not None:
+            if not isinstance(entries, dict) or not entries:
+                raise SyncError(f"{source_file} must contain a non-empty azure_projects mapping")
+            if any(not isinstance(value, dict) for value in entries.values()):
+                raise SyncError("every entry in azure_projects must be a mapping")
+        return document
+
     plural_key = f"{provider}_projects"
     legacy_key = {
         "aws": "aws_region",
@@ -94,7 +108,10 @@ def _sync(provider: str, args: argparse.Namespace) -> int:
     mount = args.kv_mount
     path = args.secret_path
     entry_count = len(document.get(f"{provider}_projects", {})) or 1
-    entry_kind = "vCenter" if provider == "vsphere" else "project"
+    entry_kind = {
+        "azure": "credential",
+        "vsphere": "vCenter",
+    }.get(provider, "project")
     if args.dry_run:
         print(f"Would mirror {provider} Ansible Vault ({entry_count} {entry_kind} entry/entries) to {mount}/{path}")
         return 0
@@ -129,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "provider",
-        choices=("aws", "gcp", "openstack", "vsphere"),
+        choices=("aws", "azure", "gcp", "openstack", "vsphere"),
         help="provider vault to mirror",
     )
     parser.add_argument(
