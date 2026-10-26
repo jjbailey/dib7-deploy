@@ -109,3 +109,5 @@ deployment workspaces and state backups.
 
 The scripts in [`local/`](local/README.md) are manual smoke tests that create
 real cloud resources; they are separate from the unit tests.
+
+Maintenance and support terms are in [`MAINTENANCE-TERMS.md`](MAINTENANCE-TERMS.md).
