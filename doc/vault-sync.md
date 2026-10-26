@@ -8,9 +8,11 @@
 - `dib7/vaults/openstack.yml`
 - `dib7/vaults/vsphere.yml`
 
-Those Ansible Vault files are the source of truth. This repository mirrors each
-complete provider document into HashiCorp Vault KV v2 so Terraform can read
-credentials at runtime. Edit the Ansible Vault file first, then sync it:
+Those Ansible Vault files are the source of truth. This repository can mirror
+each complete document into HashiCorp Vault KV v2. Terraform reads credentials
+from the AWS, GCP, OpenStack, and vSphere paths. Azure is staged: this sync
+command can mirror `vaults/azure.yml`, but no Terraform root or Azure pipeline
+reads that path yet. Edit the Ansible Vault file first, then sync it:
 
 ```bash
 ~/.dib7/bin/python -m pip install -r requirements.txt
@@ -58,11 +60,12 @@ print credential values or write decrypted data to a temporary file. Use
 `--dry-run` to decrypt and validate without writing. Azure vaults may use
 provider-specific credential field names; the sync validates the YAML mapping
 and mirrors its complete contents. The HashiCorp Vault token
-used for sync needs `create` and `update` access to the five KV v2 data paths;
-Terraform's provider runners use separate read-only policies. Writing a policy
+used for sync needs `create` and `update` access to the five KV v2 data paths.
+The Azure path is included for mirroring the staged Azure vault; the four
+existing Terraform providers use separate read-only policies. Writing a policy
 only creates it in Vault; attach the sync policy to the identity or auth role
-used for syncing, and attach each provider's read policy to the identity or
-auth role used to run Terraform.
+used for syncing, and attach the provider read policies to the identities or
+auth roles used to run Terraform.
 
 By default, the exact Ansible mappings are mirrored here:
 
@@ -78,7 +81,9 @@ Override the KV mount with `--kv-mount` or `DIB7_VAULT_KV_MOUNT`. Override a
 provider path with `--secret-path` or `DIB7_VAULT_AWS_SECRET_PATH` /
 `DIB7_VAULT_AZURE_SECRET_PATH` / `DIB7_VAULT_GCP_SECRET_PATH` /
 `DIB7_VAULT_OPENSTACK_SECRET_PATH` / `DIB7_VAULT_VSPHERE_SECRET_PATH`; keep the
-corresponding Terraform runner setting aligned with that path.
+corresponding Terraform runner setting aligned with that path. The Azure path
+currently controls only where the staged document is mirrored; no Terraform
+runner consumes it.
 
 The AWS runner selects an entry from `aws_projects` using its Ansible key, AWS
 account ID, or profile. The GCP runner selects from `gcp_projects` by Ansible

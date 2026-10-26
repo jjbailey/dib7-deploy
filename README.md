@@ -88,6 +88,8 @@ truth. See [`doc/vault-sync.md`](doc/vault-sync.md),
 [`doc/vault-gcp.md`](doc/vault-gcp.md),
 [`doc/vault-openstack.md`](doc/vault-openstack.md), and
 [`doc/vault-vsphere.md`](doc/vault-vsphere.md).
+The sync tool also supports mirroring the staged Azure vault, but there is no
+Azure Terraform root or runner yet.
 
 ## Checks
 
