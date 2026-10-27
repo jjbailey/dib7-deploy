@@ -45,6 +45,10 @@ The canonical provider settings and credentials remain in the encrypted
 updating them with `bin/sync-ansible-vault-to-hashicorp.py`; see
 `doc/vault-sync.md`.
 
+The sync command supports the staged `dib7/vaults/azure.yml` file as well.
+That path is only a Vault mirror today; no Azure Terraform root or runner reads
+it yet.
+
 The Terraform roots currently include AWS, GCP, OpenStack, and vSphere. Run
 them with `bin/terraform-aws.py`, `bin/terraform-gcp.py`,
 `bin/terraform-openstack.py`, and `bin/terraform-vsphere.py`; these wrappers

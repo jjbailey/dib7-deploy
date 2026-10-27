@@ -269,8 +269,22 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("session name must be 2–64 characters using letters, digits, or _+=,.@-")
         try:
             credentials, account, identity = _temporary_credentials(args)
-        except Exception as exc:
+        except VaultError as exc:
             print(f"AWS Vault credential setup failed: {exc}", file=sys.stderr)
+            return 1
+        except Exception as exc:
+            # ClientError's string form includes the request. A rejected
+            # GetSessionToken or AssumeRole can carry the access key, so print
+            # only the error code and message.
+            response = getattr(exc, "response", None)
+            error = response.get("Error", {}) if isinstance(response, dict) else {}
+            if error.get("Code"):
+                detail = error["Code"]
+                if error.get("Message"):
+                    detail += f": {error['Message']}"
+            else:
+                detail = type(exc).__name__
+            print(f"AWS Vault credential setup failed: {detail}", file=sys.stderr)
             return 1
         print(f"Vault AWS identity: account={account}, {identity}", file=sys.stderr)
 
