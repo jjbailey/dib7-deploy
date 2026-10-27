@@ -41,10 +41,7 @@ an instance in the corresponding environment.
 - `inventory/` holds generated or machine-specific deployment data locally.
   Reviewed catalog tfvars and launch settings are tracked in the private
   checkout; Terraform state, backups, plans, and provider caches are not.
-  `local/rsync-to-dib7-deploy.sh` excludes inventory from the public checkout.
   See [`inventory/README.md`](inventory/README.md).
-- `local/` holds the private export script and manual cloud smoke tests. See
-  [`local/README.md`](local/README.md).
 - `tests/` holds the unit tests.
 
 The catalog is the source for published image identifiers. Generated tfvars are
@@ -108,8 +105,5 @@ terraform fmt -check -recursive environments/
 
 See [`doc/state-management.md`](doc/state-management.md) for separate
 deployment workspaces and state backups.
-
-The scripts in [`local/`](local/README.md) are manual smoke tests that create
-real cloud resources; they are separate from the unit tests.
 
 Maintenance and support terms are in [`MAINTENANCE-TERMS.md`](MAINTENANCE-TERMS.md).

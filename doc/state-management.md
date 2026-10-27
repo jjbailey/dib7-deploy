@@ -42,10 +42,6 @@ workspace with `workspace show` before applying. A workspace name does not
 change the cloud resource name: set distinct `instance_name` or `vm_name`
 values in launch settings when the provider requires names to be unique.
 
-The local smoke scripts choose a workspace from provider, target and image by
-default. Set `DEPLOYMENT_WORKSPACE` to select another name. Their new default
-workspaces do not adopt resources already in the `default` workspace.
-
 The local backend locks state during Terraform operations, but the state still
 resides on this machine. It can include cloud IDs, addresses, metadata, SSH
 public keys, and provider-sensitive attributes. Do not commit it. Back it up to
