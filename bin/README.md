@@ -25,11 +25,13 @@ python3 bin/generate-vsphere-tfvars.py ubuntu26041-base --scope vcenter=legacy -
 The default catalog is `../dib7/catalogs/image-catalog.json`, resolved
 relative to this repository. Pass `--catalog PATH` when consuming another
 catalog snapshot. Use `--output PATH` to choose a different destination. By
-default the output filename includes the selected project and non-location
-scope, but omits region and zone for a consistent naming convention across
-providers. All non-location scope values use the same `key-value` filename
-format, including vSphere's vCenter and content-library scope. Use `--output`
-to keep separate files for regional variants.
+default the output filename includes the selected project, region, and all
+additional scope values, including vSphere's vCenter and content library.
+Every scope component uses the same `key-value` filename format. Use
+`--output` to choose another path.
+If you have older AWS or OpenStack tfvars without a `region-...` suffix,
+regenerate them and update your `-var-file` paths; the generator leaves the
+older files in place for you to remove after review.
 
 All generators emit the same catalog-derived variable names: `image_logical_name`,
 `image_artifact_id`, `image_artifact_type`, `image_version`,

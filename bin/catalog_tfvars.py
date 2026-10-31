@@ -189,16 +189,12 @@ def _render_tfvars(image: dict[str, Any]) -> str:
 
 def _default_output(provider: str, image: dict[str, Any]) -> Path:
     parts = [image["logical_name"]]
-    # Keep target geography out of generated filenames so providers use one
-    # convention. Project/account and non-location scope still identify the
-    # entry. Preserve the same key-value format for non-location scopes across
-    # all providers, including vSphere's vCenter and content library.
-    for field in ("project",):
+    # Include every catalog scope component so distinct target slices cannot
+    # silently overwrite one another's generated tfvars.
+    for field in ("project", "region"):
         if image.get(field) is not None:
             parts.append(f"{field}-{image[field]}")
     for key, value in sorted(image.get("scope", {}).items()):
-        if key.casefold() in {"region", "zone"}:
-            continue
         parts.append(f"{key}-{value}")
     filename = "-".join(re.sub(r"[^A-Za-z0-9._-]+", "-", part).strip("-") for part in parts)
     return REPO_ROOT / "inventory" / provider / f"{filename}.tfvars"

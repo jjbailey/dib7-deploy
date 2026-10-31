@@ -14,9 +14,9 @@ an instance in the corresponding environment.
 ## Prerequisites
 
 - Terraform 1.5.0 or later (the provider roots require `>= 1.5.0`).
-- Python 3.10 or later with the dependencies in `requirements.txt` (`boto3`
-  for the AWS wrapper, `PyYAML` for the Vault sync script). Create the
-  `~/.dib7` environment once, then install the dependencies:
+- Python 3.11 or later for the shared `~/.dib7` environment used by both
+  repositories. Install the dependencies in `requirements.txt` (`boto3` for
+  the AWS wrapper, `PyYAML` for the Vault sync script):
 
   ```bash
   python3 -m venv ~/.dib7
