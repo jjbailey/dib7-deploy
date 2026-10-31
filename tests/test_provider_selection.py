@@ -10,6 +10,8 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
+from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BIN_DIR = REPO_ROOT / "bin"
@@ -28,6 +30,7 @@ class ProviderSelectionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.aws = load_runner("aws")
+        cls.azure = load_runner("azure")
         cls.gcp = load_runner("gcp")
         cls.openstack = load_runner("openstack")
         cls.vsphere = load_runner("vsphere")
@@ -42,6 +45,45 @@ class ProviderSelectionTests(unittest.TestCase):
     def test_aws_requires_a_selector_for_multiple_projects(self) -> None:
         with self.assertRaisesRegex(self.aws.VaultError, "multiple AWS projects"):
             self.aws._select_project({"aws_projects": {"one": {}, "two": {}}}, None)
+
+    def test_azure_project_selection_by_subscription_id(self) -> None:
+        key, selected = self.azure._select_project(
+            {
+                "azure_projects": {
+                    "lab": {"subscription_id": "test-subscription-id"},
+                    "other": {"subscription_id": "other-subscription-id"},
+                }
+            },
+            "test-subscription-id",
+        )
+        self.assertEqual(key, "lab")
+        self.assertEqual(selected["subscription_id"], "test-subscription-id")
+
+    def test_azure_requires_a_selector_for_multiple_projects(self) -> None:
+        with self.assertRaisesRegex(self.azure.VaultError, "multiple Azure projects"):
+            self.azure._select_project({"azure_projects": {"one": {}, "two": {}}}, None)
+
+    def test_azure_has_no_legacy_flat_mapping(self) -> None:
+        with self.assertRaisesRegex(self.azure.VaultError, "azure_projects"):
+            self.azure._select_project({"subscription_id": "test-subscription-id"}, None)
+
+    def test_azure_environment_uses_only_the_vault_service_principal(self) -> None:
+        credentials = {
+            "ARM_TENANT_ID": "test-tenant",
+            "ARM_SUBSCRIPTION_ID": "test-subscription",
+            "ARM_CLIENT_ID": "test-client",
+            "ARM_CLIENT_SECRET": "placeholder",
+        }
+        with patch.dict(
+            self.azure.os.environ,
+            {"ARM_USE_OIDC": "true", "ARM_CLIENT_CERTIFICATE_PATH": "/tmp/cert.pfx", "VAULT_TOKEN": "x"},
+        ):
+            env = self.azure._terraform_environment(credentials, "rg-test")
+        self.assertEqual(env["ARM_CLIENT_ID"], "test-client")
+        self.assertEqual(env["ARM_USE_CLI"], "false")
+        self.assertEqual(env["TF_VAR_resource_group_name"], "rg-test")
+        for name in ("ARM_USE_OIDC", "ARM_CLIENT_CERTIFICATE_PATH", "VAULT_TOKEN"):
+            self.assertNotIn(name, env)
 
     def test_gcp_project_selection_by_project_id(self) -> None:
         selected = self.gcp._select_project(

@@ -54,6 +54,10 @@ class AnsibleVaultValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(sync_helper.SyncError, "non-empty openstack_projects"):
             self.read_yaml("openstack", "openstack_projects: {}\n")
 
+    def test_azure_requires_projects_mapping(self) -> None:
+        with self.assertRaisesRegex(sync_helper.SyncError, "azure_projects mapping"):
+            self.read_yaml("azure", "tenant_id: sample\nclient_id: sample\n")
+
     def test_rejects_non_mapping_yaml(self) -> None:
         with self.assertRaisesRegex(sync_helper.SyncError, "YAML mapping"):
             self.read_yaml("gcp", "- not-a-mapping\n- still-not-a-mapping\n")

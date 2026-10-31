@@ -62,7 +62,7 @@ python3 bin/generate-openstack-tfvars.py ubuntu26041-base \
 ```
 
 This writes
-`inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}-region-US-WEST-OR-1.tfvars`.
+`inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars`.
 The catalog project identifies the image owner. Terraform creates the server
 in the project selected from Vault; that can be a different project if the
 image is shared with it.
@@ -98,7 +98,7 @@ Initialize and plan from the repository root:
 ```bash
 python3 bin/terraform-openstack.py init
 python3 bin/terraform-openstack.py plan \
-  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}-region-US-WEST-OR-1.tfvars \
+  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars \
   -var-file=../../inventory/openstack/ubuntu26041-base-launch.settings.tfvars
 ```
 
@@ -107,7 +107,7 @@ command:
 
 ```bash
 python3 bin/terraform-openstack.py --target-project ${OS_TARGET_PROJECT} plan \
-  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}-region-US-WEST-OR-1.tfvars \
+  -var-file=../../inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars \
   -var-file=../../inventory/openstack/ubuntu26041-base-launch.settings.tfvars
 ```
 

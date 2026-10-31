@@ -92,14 +92,9 @@ class CatalogSelectionTests(unittest.TestCase):
         self.assertIn('image_logical_name = "ubuntu\\\"test"', rendered)
         self.assertIn('image_ssh_username = "ubuntu"', rendered)
 
-    def test_default_names_include_region_and_provider_scope(self) -> None:
+    def test_default_names_omit_region_and_keep_provider_scope(self) -> None:
         aws_path = catalog_tfvars._default_output("aws", image())
-        self.assertEqual(aws_path.name, "ubuntu26041-base-project-test-account-id-region-us-west-2.tfvars")
-        east_path = catalog_tfvars._default_output("aws", image(region="us-east-1"))
-        self.assertNotEqual(aws_path, east_path)
-
-        zonal_path = catalog_tfvars._default_output("gcp", image(region=None, scope={"zone": "us-west1-a"}))
-        self.assertIn("zone-us-west1-a", zonal_path.name)
+        self.assertEqual(aws_path.name, "ubuntu26041-base-project-test-account-id.tfvars")
 
         vsphere_path = catalog_tfvars._default_output(
             "vsphere",
@@ -107,13 +102,28 @@ class CatalogSelectionTests(unittest.TestCase):
                 provider="vsphere",
                 artifact_type="content_library_template",
                 project=None,
-                region=None,
                 scope={"vcenter": "legacy", "content_library": "Content_Library"},
             ),
         )
         self.assertEqual(
             vsphere_path.name,
             "ubuntu26041-base-content_library-Content_Library-vcenter-legacy.tfvars",
+        )
+
+    def test_azure_names_include_subscription_and_resource_group(self) -> None:
+        azure_path = catalog_tfvars._default_output(
+            "azure",
+            image(
+                provider="azure",
+                artifact_type="managed_image",
+                project="test-subscription-id",
+                region="westus2",
+                scope={"resource_group": "rg-test"},
+            ),
+        )
+        self.assertEqual(
+            azure_path.name,
+            "ubuntu26041-base-project-test-subscription-id-resource_group-rg-test.tfvars",
         )
 
     def test_generate_writes_catalog_values(self) -> None:

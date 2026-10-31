@@ -107,29 +107,7 @@ def read_secret(mount: str, path: str) -> dict[str, Any]:
         raise VaultError("vault CLI was not found on PATH") from exc
     except subprocess.CalledProcessError as exc:
         detail = exc.stderr.strip() or exc.stdout.strip() or f"exit status {exc.returncode}"
-        local_token = Path.home() / ".config" / "vault" / "dib7-local-read-token"
-        if local_vault and "invalid token" in detail.lower() and local_token.is_file():
-            refreshed_token = local_token.read_text().strip()
-            if refreshed_token and refreshed_token != vault_environment.get("VAULT_TOKEN"):
-                vault_environment["VAULT_TOKEN"] = refreshed_token
-                try:
-                    result = subprocess.run(
-                        command,
-                        check=True,
-                        capture_output=True,
-                        text=True,
-                        env=vault_environment,
-                    )
-                except subprocess.CalledProcessError as retry_exc:
-                    detail = (
-                        retry_exc.stderr.strip()
-                        or retry_exc.stdout.strip()
-                        or f"exit status {retry_exc.returncode}"
-                    )
-                else:
-                    detail = None
-        if detail is not None:
-            raise VaultError(f"Vault could not read {mount}/{path}: {detail}") from exc
+        raise VaultError(f"Vault could not read {mount}/{path}: {detail}") from exc
 
     try:
         payload = json.loads(result.stdout)

@@ -35,10 +35,10 @@ versions. From the `dib7-deploy` repository root:
 
 ```bash
 python3 ../dib7/bin/list-image-catalog.py \
-  --provider aws --image ubuntu26041-base
+  --provider aws --image ubuntu24045-base
 ```
 
-For example, to deploy `ubuntu26041-base` version `1792749601`, generate its
+For example, to deploy `ubuntu24045-base` version `1791540001`, generate its
 AWS variables and check that the generator selected that version. The
 generator selects the newest published row for the requested image, project,
 and region; the check stops this example if that selection has changed.
@@ -48,20 +48,20 @@ set -e
 : "${AWS_TARGET_PROJECT:?Set the target AWS account ID}"
 : "${AWS_CATALOG_PROJECT:?Set the AWS account ID that owns the AMI}"
 AWS_REGION=us-west-2
-IMAGE=ubuntu26041-base
-VERSION=1792749601
-VARSFILE="../../inventory/aws/${IMAGE}-project-${AWS_CATALOG_PROJECT}-region-${AWS_REGION}.tfvars"
+IMAGE=ubuntu24045-base
+VERSION=1791540001
+VARSFILE="../../inventory/aws/${IMAGE}-project-${AWS_CATALOG_PROJECT}.tfvars"
 WORKSPACE="aws-${AWS_TARGET_PROJECT}-${AWS_REGION}-${IMAGE}"
 
 python3 bin/generate-aws-tfvars.py "$IMAGE" \
   --region "$AWS_REGION" --project "$AWS_CATALOG_PROJECT"
 grep -Fx "image_version = \"$VERSION\"" \
-  "inventory/aws/${IMAGE}-project-${AWS_CATALOG_PROJECT}-region-${AWS_REGION}.tfvars" > /dev/null
+  "inventory/aws/${IMAGE}-project-${AWS_CATALOG_PROJECT}.tfvars" > /dev/null
 
 python3 bin/terraform-aws.py init
 python3 bin/terraform-aws.py workspace select -or-create "$WORKSPACE"
 python3 bin/terraform-aws.py --target-project="$AWS_TARGET_PROJECT" plan \
-  -var-file="$VARSFILE" -var='instance_name=ubuntu26041-example'
+  -var-file="$VARSFILE" -var='instance_name=ubuntu24045-example'
 ```
 
 Review the plan, then run the same command with `apply` instead of `plan`.
