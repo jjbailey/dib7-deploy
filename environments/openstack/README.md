@@ -24,7 +24,7 @@ python3 bin/generate-openstack-tfvars.py ubuntu26041-base \
 ```
 
 The generator writes
-`inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}-region-${OS_CATALOG_REGION}.tfvars`.
+`inventory/openstack/ubuntu26041-base-project-${OS_CATALOG_PROJECT}.tfvars`.
 See [`doc/vault-openstack.md`](../../doc/vault-openstack.md) for launch
 settings and plan/apply commands.
 

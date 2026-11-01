@@ -5,8 +5,8 @@ image and writes a tfvars file under the private top-level `inventory/`
 directory. When several published rows match, every provider selects the
 newest numeric (epoch) `version` in the selected catalog scope; it fails if
 multiple rows have non-numeric versions or the latest version is duplicated.
-AWS commonly has several versions per image, while GCP, OpenStack, and vSphere
-normally have one current row per image and scope. All providers fail if
+AWS commonly has several versions per image, while Azure, GCP, OpenStack, and
+vSphere normally have one current row per image and scope. All providers fail if
 multiple projects, regions, or scopes match until selectors are supplied. The selector values below are shell variables that
 you set for the catalog owner/location. The generators require explicit
 `--project` values where shown; they do not read the wrapper's `DIB7_*`
@@ -14,9 +14,11 @@ selectors. Catalog owner/project can differ from the deployment target.
 
 ```bash
 : "${AWS_TARGET_PROJECT:?Set the target AWS account ID}"
+: "${AZURE_CATALOG_PROJECT:?Set the Azure subscription that holds the image}"
 : "${GCP_TARGET_PROJECT:?Set the GCP deployment project ID}"
 : "${OS_CATALOG_PROJECT:?Set the OpenStack catalog owner project}"
 python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project "${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}"
+python3 bin/generate-azure-tfvars.py ubuntu26041-base --project "${AZURE_CATALOG_PROJECT}"
 python3 bin/generate-gcp-tfvars.py ubuntu26041-base --project "${GCP_CATALOG_PROJECT:-$GCP_TARGET_PROJECT}"
 python3 bin/generate-openstack-tfvars.py ubuntu26041-base --region US-WEST-OR-1 --project "${OS_CATALOG_PROJECT}"
 python3 bin/generate-vsphere-tfvars.py ubuntu26041-base --scope vcenter=legacy --scope content_library=Content_Library
@@ -25,13 +27,11 @@ python3 bin/generate-vsphere-tfvars.py ubuntu26041-base --scope vcenter=legacy -
 The default catalog is `../dib7/catalogs/image-catalog.json`, resolved
 relative to this repository. Pass `--catalog PATH` when consuming another
 catalog snapshot. Use `--output PATH` to choose a different destination. By
-default the output filename includes the selected project, region, and all
-additional scope values, including vSphere's vCenter and content library.
-Every scope component uses the same `key-value` filename format. Use
-`--output` to choose another path.
-If you have older AWS or OpenStack tfvars without a `region-...` suffix,
-regenerate them and update your `-var-file` paths; the generator leaves the
-older files in place for you to remove after review.
+default the output filename includes the selected project and non-location
+scope, but omits region and zone for a consistent naming convention across
+providers. All non-location scope values use the same `key-value` filename
+format, including vSphere's vCenter and content-library scope. Use `--output`
+to keep separate files for regional variants.
 
 All generators emit the same catalog-derived variable names: `image_logical_name`,
 `image_artifact_id`, `image_artifact_type`, `image_version`,
@@ -47,15 +47,12 @@ The canonical provider settings and credentials remain in the encrypted
 updating them with `bin/sync-ansible-vault-to-hashicorp.py`; see
 `doc/vault-sync.md`.
 
-The sync command supports the staged `dib7/vaults/azure.yml` file as well.
-That path is only a Vault mirror today; no Azure Terraform root or runner reads
-it yet.
-
-The Terraform roots currently include AWS, GCP, OpenStack, and vSphere. Run
-them with `bin/terraform-aws.py`, `bin/terraform-gcp.py`,
-`bin/terraform-openstack.py`, and `bin/terraform-vsphere.py`; these wrappers
-fetch provider credentials from Vault. See the provider environment READMEs
-and `doc/vault-aws.md`, `doc/vault-gcp.md`, `doc/vault-openstack.md`, and
+The Terraform roots currently include AWS, Azure, GCP, OpenStack, and vSphere.
+Run them with `bin/terraform-aws.py`, `bin/terraform-azure.py`,
+`bin/terraform-gcp.py`, `bin/terraform-openstack.py`, and
+`bin/terraform-vsphere.py`; these wrappers fetch provider credentials from
+Vault. See the provider environment READMEs and `doc/vault-aws.md`,
+`doc/vault-azure.md`, `doc/vault-gcp.md`, `doc/vault-openstack.md`, and
 `doc/vault-vsphere.md` for launch inputs and Vault setup.
 
 Use `python3 bin/backup-terraform-state.py DESTINATION` to copy state snapshots

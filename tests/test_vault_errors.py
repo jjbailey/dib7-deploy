@@ -30,7 +30,7 @@ def load_runner(provider: str):
 
 class VaultErrorDetailTests(unittest.TestCase):
     def test_vault_cli_detail_is_included_for_each_provider(self) -> None:
-        for provider in ("aws", "gcp", "openstack", "vsphere"):
+        for provider in ("aws", "azure", "gcp", "openstack", "vsphere"):
             with self.subTest(provider=provider):
                 module = load_runner(provider)
                 self.assertIs(module._read_secret, terraform_runner.read_secret)

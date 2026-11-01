@@ -31,7 +31,7 @@ select the tfvars file; the wrapper reads Vault's target from
 python3 bin/terraform-aws.py init
 python3 bin/terraform-aws.py workspace new "aws-${AWS_TARGET_PROJECT}-us-west-2-ubuntu26041-base"
 python3 bin/terraform-aws.py plan \
-  -var-file="../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}-region-us-west-2.tfvars"
+  -var-file="../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars"
 ```
 
 Use `workspace select NAME` to return to an existing deployment. Terraform

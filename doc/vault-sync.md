@@ -9,10 +9,9 @@
 - `dib7/vaults/vsphere.yml`
 
 Those Ansible Vault files are the source of truth. This repository can mirror
-each complete document into HashiCorp Vault KV v2. Terraform reads credentials
-from the AWS, GCP, OpenStack, and vSphere paths. Azure is staged: this sync
-command can mirror `vaults/azure.yml`, but no Terraform root or Azure pipeline
-reads that path yet. Edit the Ansible Vault file first, then sync it:
+each complete document into HashiCorp Vault KV v2, where the Terraform
+wrappers read their credentials. Edit the Ansible Vault file first, then sync
+it:
 
 ```bash
 ~/.dib7/bin/python -m pip install -r requirements.txt
@@ -48,7 +47,11 @@ caches the resulting token in `~/.vault-token`, so you usually do not need to
 export `VAULT_TOKEN`. If you do provide `VAULT_TOKEN` for automation, supply it
 through a secure runtime environment and never commit it to this repository.
 The wrappers use that token for the Vault read, then remove it before starting
-Terraform.
+Terraform. An exported `VAULT_TOKEN` takes precedence over `~/.vault-token`, so
+a stale one in your shell profile overrides a fresh `vault login`; run
+`vault token lookup` to see which token is in effect. When Vault reports
+`permission denied` or `invalid token`, unset or refresh `VAULT_TOKEN` and log
+in again; the wrappers do not fall back to another token.
 
 The `DIB7_VAULT_*` settings below configure KV mount and secret paths; they do
 not configure the Vault server address or authentication.
@@ -57,12 +60,11 @@ The command uses `ansible-vault view`, following `VAULT_PASSWORD_FILE` or
 `~/.ssh/dib-vault-pass` when available and prompting otherwise. It validates
 the decrypted YAML, then streams it to the Vault CLI over stdin. It does not
 print credential values or write decrypted data to a temporary file. Use
-`--dry-run` to decrypt and validate without writing. Azure vaults may use
-provider-specific credential field names; the sync validates the YAML mapping
-and mirrors its complete contents. The HashiCorp Vault token
-used for sync needs `create` and `update` access to the five KV v2 data paths.
-The Azure path is included for mirroring the staged Azure vault; the four
-existing Terraform providers use separate read-only policies. Writing a policy
+`--dry-run` to decrypt and validate without writing. The Azure vault must
+contain an `azure_projects` mapping; unlike the other providers, it never had
+a legacy flat form. The HashiCorp Vault token used for sync needs `create` and
+`update` access to the five KV v2 data paths. The Terraform providers use
+separate read-only policies. Writing a policy
 only creates it in Vault; attach the sync policy to the identity or auth role
 used for syncing, and attach the provider read policies to the identities or
 auth roles used to run Terraform.
@@ -81,19 +83,18 @@ Override the KV mount with `--kv-mount` or `DIB7_VAULT_KV_MOUNT`. Override a
 provider path with `--secret-path` or `DIB7_VAULT_AWS_SECRET_PATH` /
 `DIB7_VAULT_AZURE_SECRET_PATH` / `DIB7_VAULT_GCP_SECRET_PATH` /
 `DIB7_VAULT_OPENSTACK_SECRET_PATH` / `DIB7_VAULT_VSPHERE_SECRET_PATH`; keep the
-corresponding Terraform runner setting aligned with that path. The Azure path
-currently controls only where the staged document is mirrored; no Terraform
-runner consumes it.
+corresponding Terraform runner setting aligned with that path.
 
 The AWS runner selects an entry from `aws_projects` using its Ansible key, AWS
-account ID, or profile. The GCP runner selects from `gcp_projects` by Ansible
+account ID, or profile. The Azure runner selects from `azure_projects` by
+Ansible key or subscription ID. The GCP runner selects from `gcp_projects` by Ansible
 key or GCP project ID. The vSphere runner
 matches explicit `--target-vcenter` selectors against a `vsphere_projects`
 key or hostname. With no explicit selector, flat legacy vCenter credentials
 take precedence when present, matching dib7; otherwise a single mapped
 entry is selected automatically. For multiple mapped entries, pass
 `--target-project` or `--target-vcenter` before the Terraform command, or set
-the corresponding AWS, GCP, or vSphere target environment variable. OpenStack
+the corresponding AWS, Azure, GCP, or vSphere target environment variable. OpenStack
 matches a project key, project name, or project ID using `--target-project` or
 `DIB7_OPENSTACK_TARGET_PROJECT`; with no explicit selector, legacy
 `openstack_auth` credentials take precedence when present, matching dib7.

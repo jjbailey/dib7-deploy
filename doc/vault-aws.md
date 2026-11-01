@@ -65,11 +65,13 @@ export DIB7_AWS_TARGET_PROJECT="$AWS_TARGET_PROJECT"
 ~/.dib7/bin/python bin/terraform-aws.py init
 python3 bin/generate-aws-tfvars.py ubuntu26041-base --region us-west-2 --project "${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}"
 ~/.dib7/bin/python bin/terraform-aws.py plan \
-  -var-file="../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}-region-us-west-2.tfvars"
+  -var-file="../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars"
 ```
 
-Generated filenames include the catalog project/account and region, so
-different regional images have separate tfvars files.
+Generated filenames include the catalog project/account and other non-location
+scope, but omit the catalog region. The generated variables still record the
+image region. Use `--output` if you need to keep separate tfvars files for
+regional catalog variants.
 
 If `aws_projects` contains multiple entries, select the same key, account ID, or
 profile used in Ansible with `--target-project` before the Terraform command,
@@ -79,7 +81,7 @@ account against it and stops before Terraform if they disagree:
 
 ```bash
 ~/.dib7/bin/python bin/terraform-aws.py --target-project ${AWS_TARGET_PROJECT} plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}-region-us-west-2.tfvars
+  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
 ```
 
 The wrapper's Vault settings can be supplied through environment variables or
@@ -89,7 +91,7 @@ flags. For example, to use a different KV path and assume a deploy role:
 export DIB7_VAULT_AWS_SECRET_PATH=production/aws-deploy
 export DIB7_AWS_ASSUME_ROLE_ARN=arn:aws:iam::${AWS_TARGET_PROJECT}:role/dib7-tf-deploy
 ~/.dib7/bin/python bin/terraform-aws.py plan \
-  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}-region-us-west-2.tfvars
+  -var-file=../../inventory/aws/ubuntu26041-base-project-${AWS_CATALOG_PROJECT:-$AWS_TARGET_PROJECT}.tfvars
 ```
 
 The wrapper resolves credentials for each plan or apply invocation, so the

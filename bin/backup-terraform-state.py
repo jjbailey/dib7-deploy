@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INVENTORY = REPO_ROOT / "inventory"
-PROVIDERS = ("aws", "gcp", "openstack", "vsphere")
+PROVIDERS = ("aws", "azure", "gcp", "openstack", "vsphere")
 
 class BackupError(Exception):
     """An actionable local state backup error."""

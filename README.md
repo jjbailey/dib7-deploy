@@ -5,7 +5,7 @@ Terraform project for launching instances from images published by
 building QCOW2 images, importing them into supported clouds, and publishing
 their artifact identifiers to its image catalog.
 
-This project supports AWS, GCP, OpenStack, and VMware vSphere. The tfvars
+This project supports AWS, Azure, GCP, OpenStack, and VMware vSphere. The tfvars
 generators read the catalog contract documented in
 [`doc/image-catalog.md`](https://github.com/jjbailey/dib7/blob/main/doc/image-catalog.md),
 and each provider's Terraform root uses the selected published image to launch
@@ -14,9 +14,9 @@ an instance in the corresponding environment.
 ## Prerequisites
 
 - Terraform 1.5.0 or later (the provider roots require `>= 1.5.0`).
-- Python 3.11 or later for the shared `~/.dib7` environment used by both
-  repositories. Install the dependencies in `requirements.txt` (`boto3` for
-  the AWS wrapper, `PyYAML` for the Vault sync script):
+- Python 3.10 or later with the dependencies in `requirements.txt` (`boto3`
+  for the AWS wrapper, `PyYAML` for the Vault sync script). Create the
+  `~/.dib7` environment once, then install the dependencies:
 
   ```bash
   python3 -m venv ~/.dib7
@@ -33,8 +33,8 @@ an instance in the corresponding environment.
 - `bin/` holds the catalog-to-tfvars generators, the Vault-backed Terraform
   wrappers, and the Vault sync and state backup scripts. See
   [`bin/README.md`](bin/README.md).
-- `environments/` holds one Terraform root per provider: `aws`, `gcp`,
-  `openstack`, and `vsphere`.
+- `environments/` holds one Terraform root per provider: `aws`, `azure`,
+  `gcp`, `openstack`, and `vsphere`.
 - `doc/` holds the Vault and state-management guides.
 - `policies/` holds the HashiCorp Vault policies for the wrappers and the sync
   command.
@@ -75,18 +75,17 @@ See [`bin/README.md`](bin/README.md) for generator selectors and
 workspaces.
 
 The launch environments are [AWS](environments/aws/README.md),
-[GCP](environments/gcp/README.md), [OpenStack](environments/openstack/README.md),
+[Azure](environments/azure/README.md), [GCP](environments/gcp/README.md), [OpenStack](environments/openstack/README.md),
 and [vSphere](environments/vsphere/README.md). Each uses catalog-derived image
 fields and keeps destination placement and VM settings in local inventory.
 Provider credentials are read from HashiCorp Vault at runtime; Vault mirrors
 the provider data in `dib7` Ansible Vault, which remains the source of
 truth. See [`doc/vault-sync.md`](doc/vault-sync.md),
 [`doc/vault-aws.md`](doc/vault-aws.md),
+[`doc/vault-azure.md`](doc/vault-azure.md),
 [`doc/vault-gcp.md`](doc/vault-gcp.md),
 [`doc/vault-openstack.md`](doc/vault-openstack.md), and
 [`doc/vault-vsphere.md`](doc/vault-vsphere.md).
-The sync tool also supports mirroring the staged Azure vault, but there is no
-Azure Terraform root or runner yet.
 
 ## Checks
 
