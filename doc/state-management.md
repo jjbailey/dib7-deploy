@@ -53,7 +53,9 @@ python3 bin/backup-terraform-state.py /mnt/secure-backups/dib7-deploy
 
 Each run creates a timestamped directory and copies the default and named
 workspace state files with owner-only file permissions. Keep the backup
-destination outside this repository and protect it like a secret.
+destination outside this repository and protect it like a secret. The backup
+refuses to run while any provider's state is locked by a running Terraform
+operation, since the copy could be torn; `--force` copies it anyway.
 This command backs up state only; it does not back up generated tfvars or
 launch settings.
 
