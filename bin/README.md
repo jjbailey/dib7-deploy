@@ -55,6 +55,16 @@ Vault. See the provider environment READMEs and `doc/vault-aws.md`,
 `doc/vault-azure.md`, `doc/vault-gcp.md`, `doc/vault-openstack.md`, and
 `doc/vault-vsphere.md` for launch inputs and Vault setup.
 
+Before `plan` or `apply`, the wrappers compare each generated `-var-file`
+with the current dib7 catalog and warn when it no longer names the newest
+published entry for its target. dib7 republishes GCP, Azure, OpenStack,
+and vSphere images in place under the same name and keeps only the latest
+catalog row, so an older file can name a deleted OpenStack image or label new
+image content with an old version. Regenerate the file before creating or
+replacing instances. Regenerating changes `image_version`, which replaces
+instances deployed from the older version. The warning does not stop the run,
+so deploying an older AWS AMI on purpose still works.
+
 Use `python3 bin/backup-terraform-state.py DESTINATION` to copy state snapshots
 to a mounted backup disk or secured share outside the repository. See
 `doc/state-management.md` for backup and workspace details.

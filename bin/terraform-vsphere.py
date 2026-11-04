@@ -17,6 +17,7 @@ from terraform_runner import (
     VaultError,
     add_runner_arguments,
     read_secret as _read_secret,
+    report_stale_tfvars,
     run_terraform,
     terraform_environment,
     terraform_args_or_error,
@@ -138,6 +139,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     terraform_args = terraform_args_or_error(parser, args.terraform_args, "vsphere")
+    report_stale_tfvars("vsphere", VSPHERE_ROOT, terraform_args)
 
     credentials = None
     vcenter_key = None

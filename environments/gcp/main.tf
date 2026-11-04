@@ -16,8 +16,9 @@ resource "google_compute_instance" "image" {
   allow_stopping_for_update = var.allow_stopping_for_update
 
   labels = merge(var.labels, {
-    dib7_image_name = lower(var.image_logical_name)
-    dib7_image_run  = lower(var.image_version)
+    # Label values allow only lowercase letters, digits, underscore and hyphen.
+    dib7_image_name = replace(lower(var.image_logical_name), "/[^a-z0-9_-]/", "-")
+    dib7_image_run  = replace(lower(var.image_version), "/[^a-z0-9_-]/", "-")
   })
 
   boot_disk {

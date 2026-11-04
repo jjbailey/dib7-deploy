@@ -17,6 +17,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CATALOG = REPO_ROOT.parent / "dib7" / "catalogs" / "image-catalog.json"
 LOGICAL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 EPOCH_VERSION_RE = re.compile(r"^[0-9]+$")
+GENERATED_HEADER = "# Generated from the dib7 image catalog. Do not edit by hand."
+TFVARS_LINE_RE = re.compile(r"^([a-z_]+) = (.*)$")
+HCL_STRING_PAIR_RE = re.compile(r'("(?:[^"\\]|\\.)*") = ("(?:[^"\\]|\\.)*")')
 
 class CatalogError(Exception):
     """An actionable catalog or selector error."""
@@ -183,9 +186,81 @@ def _render_tfvars(image: dict[str, Any]) -> str:
         ("image_region", _hcl_string(image["region"]) if image.get("region") is not None else "null"),
         ("image_scope", _hcl_scope(image.get("scope", {}))),
     ]
-    lines = ["# Generated from the dib7 image catalog. Do not edit by hand."]
+    lines = [GENERATED_HEADER]
     lines.extend(f"{name} = {value}" for name, value in values)
     return "\n".join(lines) + "\n"
+
+def read_generated_tfvars(path: Path) -> dict[str, Any] | None:
+    """Parse a tfvars file written by this module; return None for any other file."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return None
+    if not lines or lines[0] != GENERATED_HEADER:
+        return None
+    values: dict[str, Any] = {}
+    try:
+        for line in lines[1:]:
+            match = TFVARS_LINE_RE.match(line)
+            if not match:
+                continue
+            name, raw = match.groups()
+            if raw == "null":
+                values[name] = None
+            elif raw.startswith("{"):
+                values[name] = {
+                    json.loads(key): json.loads(value)
+                    for key, value in HCL_STRING_PAIR_RE.findall(raw)
+                }
+            else:
+                values[name] = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    return values
+
+def catalog_drift(provider: str, tfvars: dict[str, Any], images: list[dict[str, Any]]) -> str | None:
+    """Describe how generated tfvars differ from the catalog's current entry, if they do.
+
+    dib7 keeps only the latest row for providers that republish in place,
+    so a tfvars file is current only while it names the newest published row
+    for its exact target.
+    """
+    rows = [
+        row
+        for row in images
+        if row["status"] == "published"
+        and row["provider"] == provider
+        and row["artifact_type"] == tfvars.get("image_artifact_type")
+        and row["logical_name"] == tfvars.get("image_logical_name")
+        and row.get("project") == tfvars.get("image_project")
+        and row.get("region") == tfvars.get("image_region")
+        and row.get("scope", {}) == (tfvars.get("image_scope") or {})
+    ]
+    version = tfvars.get("image_version")
+    artifact_id = tfvars.get("image_artifact_id")
+    if not rows:
+        return (
+            f"{tfvars.get('image_logical_name')} version {version} has no published "
+            "catalog entry for this target; check the catalog before creating or "
+            "replacing instances"
+        )
+    if len(rows) == 1:
+        latest = rows[0]
+    elif all(isinstance(row["version"], str) and EPOCH_VERSION_RE.fullmatch(row["version"]) for row in rows):
+        latest = max(rows, key=lambda row: int(row["version"]))
+    else:
+        return None
+    if latest["version"] == version and latest["artifact_id"] == artifact_id:
+        return None
+    if latest["version"] == version:
+        change = f"its artifact changed from {artifact_id} to {latest['artifact_id']}"
+    else:
+        change = f"the catalog now has version {latest['version']} ({latest['artifact_id']})"
+    return (
+        f"generated from version {version} ({artifact_id}), but {change}; "
+        f"regenerate with bin/generate-{provider}-tfvars.py before creating or "
+        "replacing instances"
+    )
 
 def _default_output(provider: str, image: dict[str, Any]) -> Path:
     parts = [image["logical_name"]]

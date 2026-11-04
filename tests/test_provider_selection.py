@@ -85,6 +85,36 @@ class ProviderSelectionTests(unittest.TestCase):
         for name in ("ARM_USE_OIDC", "ARM_CLIENT_CERTIFICATE_PATH", "VAULT_TOKEN"):
             self.assertNotIn(name, env)
 
+    def test_aws_environment_drops_inherited_credentials(self) -> None:
+        inherited = {
+            "AWS_ACCESS_KEY_ID": "inherited-key",
+            "AWS_SECRET_ACCESS_KEY": "inherited-secret",
+            "AWS_SESSION_TOKEN": "inherited-token",
+            "AWS_PROFILE": "inherited-profile",
+        }
+        with patch.dict(self.aws.os.environ, inherited):
+            no_credentials = self.aws._terraform_environment(None)
+            with_credentials = self.aws._terraform_environment(
+                {
+                    "AWS_ACCESS_KEY_ID": "vault-key",
+                    "AWS_SECRET_ACCESS_KEY": "vault-secret",
+                    "AWS_SESSION_TOKEN": "vault-token",
+                }
+            )
+        for name in inherited:
+            self.assertNotIn(name, no_credentials)
+        self.assertEqual(with_credentials["AWS_ACCESS_KEY_ID"], "vault-key")
+        self.assertNotIn("AWS_PROFILE", with_credentials)
+
+    def test_gcp_environment_drops_impersonation(self) -> None:
+        with patch.dict(
+            self.gcp.os.environ,
+            {"GOOGLE_IMPERSONATE_SERVICE_ACCOUNT": "other@example.iam.gserviceaccount.com"},
+        ):
+            env = self.gcp._terraform_environment('{"type":"service_account"}', "lab")
+        self.assertNotIn("GOOGLE_IMPERSONATE_SERVICE_ACCOUNT", env)
+        self.assertEqual(env["TF_VAR_project_id"], "lab")
+
     def test_gcp_project_selection_by_project_id(self) -> None:
         selected = self.gcp._select_project(
             {"gcp_projects": {"lab": {"gcp_project": "lab-project-id"}}},

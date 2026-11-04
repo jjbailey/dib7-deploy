@@ -18,6 +18,7 @@ from terraform_runner import (
     VaultError,
     add_runner_arguments,
     read_secret as _read_secret,
+    report_stale_tfvars,
     run_terraform,
     terraform_environment,
     terraform_args_or_error,
@@ -188,9 +189,14 @@ def _temporary_credentials(args: argparse.Namespace) -> tuple[dict[str, str], st
     return result, str(identity["Account"]), identity_text
 
 def _terraform_environment(credentials: dict[str, str] | None = None) -> dict[str, str]:
-    # Prevent inherited provider selectors from shadowing Vault credentials.
+    # Prevent inherited credentials and provider selectors from shadowing
+    # Vault credentials, and keep them out of credential-free commands.
     env = terraform_environment(
         (
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+            "AWS_SECURITY_TOKEN",
             "AWS_PROFILE",
             "AWS_DEFAULT_PROFILE",
             "AWS_WEB_IDENTITY_TOKEN_FILE",
@@ -259,6 +265,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     terraform_args = terraform_args_or_error(parser, args.terraform_args, "aws")
+    report_stale_tfvars("aws", AWS_ROOT, terraform_args)
 
     command = terraform_args[0]
     credentials: dict[str, str] | None = None
