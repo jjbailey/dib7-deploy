@@ -70,5 +70,26 @@ class BackupTerraformStateTests(unittest.TestCase):
                     repo / "backup", inventory=inventory, repo_root=repo
                 )
 
+    def test_refuses_locked_state_unless_forced(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = base / "repo"
+            inventory = repo / "inventory"
+            workspace = inventory / "aws" / "terraform.tfstate.d" / "test"
+            workspace.mkdir(parents=True)
+            (workspace / "terraform.tfstate").write_text("state", encoding="utf-8")
+            (workspace / ".terraform.tfstate.lock.info").write_text("{}", encoding="utf-8")
+            destination = base / "external-backups"
+
+            with self.assertRaisesRegex(backup_helper.BackupError, "locked in aws/terraform.tfstate.d/test"):
+                backup_helper.backup_state(destination, inventory=inventory, repo_root=repo)
+            self.assertFalse(destination.exists())
+
+            result = backup_helper.backup_state(
+                destination, inventory=inventory, repo_root=repo, force=True
+            )
+            self.assertTrue((result / "aws" / "terraform.tfstate.d" / "test" / "terraform.tfstate").is_file())
+            self.assertFalse((result / "aws" / "terraform.tfstate.d" / "test" / ".terraform.tfstate.lock.info").exists())
+
 if __name__ == "__main__":
     unittest.main()

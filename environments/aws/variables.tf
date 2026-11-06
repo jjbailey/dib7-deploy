@@ -116,6 +116,17 @@ variable "iam_instance_profile" {
   nullable    = true
 }
 
+variable "metadata_http_tokens" {
+  description = "Instance metadata session tokens: \"required\" enforces IMDSv2; \"optional\" also allows IMDSv1."
+  type        = string
+  default     = "required"
+
+  validation {
+    condition     = contains(["required", "optional"], var.metadata_http_tokens)
+    error_message = "metadata_http_tokens must be \"required\" or \"optional\"."
+  }
+}
+
 variable "tags" {
   description = "Additional EC2 instance tags."
   type        = map(string)

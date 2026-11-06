@@ -62,6 +62,12 @@ variable "image_region" {
   }
 }
 
+variable "image_scope" {
+  description = "Additional scope metadata recorded for the catalog image."
+  type        = map(string)
+  default     = {}
+}
+
 variable "target_region" {
   description = "Optional region from the selected Vault project, used to validate catalog scope."
   type        = string

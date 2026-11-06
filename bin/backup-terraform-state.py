@@ -25,6 +25,7 @@ def backup_state(
     inventory: Path = INVENTORY,
     repo_root: Path = REPO_ROOT,
     timestamp: str | None = None,
+    force: bool = False,
 ) -> Path:
     destination = destination.expanduser().resolve()
     repo_root = repo_root.resolve()
@@ -32,16 +33,26 @@ def backup_state(
         raise BackupError("backup destination must be outside the repository")
 
     state_files = []
+    locked = []
     for provider in PROVIDERS:
         provider_dir = inventory / provider
         if not provider_dir.exists():
             continue
+        # The local backend writes .terraform.tfstate.lock.info beside a state
+        # file while an operation holds it; a copy taken then may be torn.
+        locked.extend(provider_dir.rglob(".terraform.tfstate.lock.info"))
         state_files.extend(
             path
             for path in provider_dir.rglob("*")
             if not path.is_symlink()
             and path.is_file()
             and (path.name == "terraform.tfstate" or path.name.startswith("terraform.tfstate."))
+        )
+    if locked and not force:
+        held = ", ".join(str(path.parent.relative_to(inventory)) for path in sorted(locked))
+        raise BackupError(
+            f"Terraform state is locked in {held}; wait for the running operation "
+            "to finish or rerun with --force"
         )
     state_files.sort()
     if not state_files:
@@ -71,9 +82,14 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="external backup directory, such as a mounted backup drive",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="copy state even while a Terraform operation holds its lock",
+    )
     args = parser.parse_args(argv)
     try:
-        backup_dir = backup_state(args.destination)
+        backup_dir = backup_state(args.destination, force=args.force)
     except BackupError as exc:
         print(f"Terraform state backup failed: {exc}", file=sys.stderr)
         return 1

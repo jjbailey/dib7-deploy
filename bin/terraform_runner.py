@@ -15,6 +15,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from catalog_tfvars import (
+    DEFAULT_CATALOG,
+    CatalogError,
+    _read_catalog,
+    catalog_drift,
+    read_generated_tfvars,
+)
+
 NO_CREDENTIAL_COMMANDS = frozenset(
     {
         "fmt",
@@ -121,6 +129,55 @@ def read_secret(mount: str, path: str) -> dict[str, Any]:
 def normalize_terraform_args(args: list[str]) -> list[str]:
     """Remove the optional separator accepted by the provider wrappers."""
     return args[1:] if args and args[0] == "--" else args
+
+CATALOG_CHECK_COMMANDS = frozenset({"plan", "apply"})
+
+def _var_files(terraform_args: list[str], root: Path) -> list[Path]:
+    """Return -var-file paths as Terraform resolves them from the provider root."""
+    paths = []
+    args = iter(terraform_args[1:])
+    for arg in args:
+        flag, separator, value = arg.partition("=")
+        if flag not in {"-var-file", "--var-file"}:
+            continue
+        if not separator:
+            value = next(args, "")
+        if value:
+            path = Path(value).expanduser()
+            paths.append(path if path.is_absolute() else root / path)
+    return paths
+
+def report_stale_tfvars(
+    provider: str,
+    root: Path,
+    terraform_args: list[str],
+    catalog: Path = DEFAULT_CATALOG,
+) -> None:
+    """Warn when a generated tfvars file no longer matches the image catalog.
+
+    dib7 republishes GCP, Azure, OpenStack, and vSphere images in place and
+    keeps only the latest catalog row, so an older tfvars file can name a
+    deleted image or label current content with an old version. This only
+    warns: deploying an older AWS AMI on purpose is still allowed.
+    """
+    if not terraform_args or terraform_args[0] not in CATALOG_CHECK_COMMANDS:
+        return
+    generated = [
+        (path, values)
+        for path in _var_files(terraform_args, root)
+        if (values := read_generated_tfvars(path)) is not None
+    ]
+    if not generated:
+        return
+    try:
+        images = _read_catalog(catalog)
+    except CatalogError as exc:
+        print(f"Warning: cannot compare tfvars with the image catalog: {exc}", file=sys.stderr)
+        return
+    for path, values in generated:
+        drift = catalog_drift(provider, values, images)
+        if drift:
+            print(f"Warning: {path.name}: {drift}", file=sys.stderr)
 
 def run_terraform(
     terraform_bin: str,

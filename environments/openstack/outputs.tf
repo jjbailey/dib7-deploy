@@ -30,5 +30,6 @@ output "selected_catalog_image" {
     ssh_username  = var.image_ssh_username
     project       = var.image_project
     region        = var.image_region
+    scope         = var.image_scope
   }
 }

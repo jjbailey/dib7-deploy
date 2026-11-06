@@ -119,4 +119,5 @@ All are optional. `instance_name` and `key_name` default from the catalog
 | `key_name`                    | catalog SSH username | existing EC2 key pair               |
 | `associate_public_ip_address` | AWS default          | public IPv4 override                |
 | `iam_instance_profile`        | none                 | existing instance profile name      |
+| `metadata_http_tokens`        | `required` (IMDSv2)  | `optional` also allows IMDSv1       |
 | `tags`                        | `{}`                 | additional instance tags            |

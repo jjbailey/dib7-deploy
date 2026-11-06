@@ -4,7 +4,7 @@ Each provider script selects the latest `published` catalog row for a logical
 image and writes a tfvars file under the private top-level `inventory/`
 directory. When several published rows match, every provider selects the
 newest numeric (epoch) `version` in the selected catalog scope; it fails if
-multiple rows have non-numeric versions or the latest version is duplicated.
+any of those rows has a non-numeric version or the latest version is duplicated.
 AWS commonly has several versions per image, while Azure, GCP, OpenStack, and
 vSphere normally have one current row per image and scope. All providers fail if
 multiple projects, regions, or scopes match until selectors are supplied. The selector values below are shell variables that
@@ -54,6 +54,16 @@ Run them with `bin/terraform-aws.py`, `bin/terraform-azure.py`,
 Vault. See the provider environment READMEs and `doc/vault-aws.md`,
 `doc/vault-azure.md`, `doc/vault-gcp.md`, `doc/vault-openstack.md`, and
 `doc/vault-vsphere.md` for launch inputs and Vault setup.
+
+Before `plan` or `apply`, the wrappers compare each generated `-var-file`
+with the current dib7 catalog and warn when it no longer names the newest
+published entry for its target. dib7 republishes GCP, Azure, OpenStack,
+and vSphere images in place under the same name and keeps only the latest
+catalog row, so an older file can name a deleted OpenStack image or label new
+image content with an old version. Regenerate the file before creating or
+replacing instances. Regenerating changes `image_version`, which replaces
+instances deployed from the older version. The warning does not stop the run,
+so deploying an older AWS AMI on purpose still works.
 
 Use `python3 bin/backup-terraform-state.py DESTINATION` to copy state snapshots
 to a mounted backup disk or secured share outside the repository. See

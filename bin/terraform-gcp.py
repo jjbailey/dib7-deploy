@@ -18,6 +18,7 @@ from terraform_runner import (
     VaultError,
     add_runner_arguments,
     read_secret as _read_secret,
+    report_stale_tfvars,
     run_terraform,
     terraform_environment,
     terraform_args_or_error,
@@ -104,6 +105,10 @@ def _terraform_environment(
             "GCLOUD_KEYFILE_JSON",
             "GOOGLE_OAUTH_ACCESS_TOKEN",
             "CLOUDSDK_AUTH_ACCESS_TOKEN",
+            # The provider would impersonate this account using the Vault
+            # key, so Terraform would act as a different identity.
+            "GOOGLE_IMPERSONATE_SERVICE_ACCOUNT",
+            "GOOGLE_IMPERSONATE_SERVICE_ACCOUNT_DELEGATES",
         )
     )
     if credentials_json is not None:
@@ -129,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     terraform_args = terraform_args_or_error(parser, args.terraform_args, "gcp")
+    report_stale_tfvars("gcp", GCP_ROOT, terraform_args)
 
     credentials_json = None
     project_id = None

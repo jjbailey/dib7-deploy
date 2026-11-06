@@ -6,6 +6,18 @@ data "vsphere_virtual_machine" "image_template" {
   name          = var.image_artifact_id
   datacenter_id = data.vsphere_datacenter.target.id
   folder        = var.template_folder
+
+  lifecycle {
+    # Check before the lookup so a vCenter mismatch is reported clearly
+    # instead of as a missing template.
+    precondition {
+      condition = (
+        var.target_vcenter_key == null ||
+        lookup(var.image_scope, "vcenter", var.target_vcenter_key) == var.target_vcenter_key
+      )
+      error_message = "The selected Vault vCenter does not match the vCenter recorded in the image catalog scope."
+    }
+  }
 }
 
 data "vsphere_resource_pool" "target" {
@@ -68,13 +80,9 @@ resource "vsphere_virtual_machine" "image" {
   lifecycle {
     replace_triggered_by = [terraform_data.image_revision]
 
-    precondition {
-      condition = (
-        var.target_vcenter_key == null ||
-        lookup(var.image_scope, "vcenter", var.target_vcenter_key) == var.target_vcenter_key
-      )
-      error_message = "The selected Vault vCenter does not match the vCenter recorded in the image catalog scope."
-    }
-
+    # dib7 republishes templates under the same name, so the template
+    # UUID changes without a catalog version change. Replacement follows the
+    # catalog version through image_revision, not the template UUID.
+    ignore_changes = [clone[0].template_uuid]
   }
 }
