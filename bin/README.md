@@ -63,7 +63,9 @@ catalog row, so an older file can name a deleted OpenStack image or label new
 image content with an old version. Regenerate the file before creating or
 replacing instances. Regenerating changes `image_version`, which replaces
 instances deployed from the older version. The warning does not stop the run,
-so deploying an older AWS AMI on purpose still works.
+so deploying an older AWS AMI on purpose still works. Set
+`DIB7_STRICT_CATALOG=1` to make drift, or an unreadable catalog, stop the run
+instead.
 
 Use `python3 bin/backup-terraform-state.py DESTINATION` to copy state snapshots
 to a mounted backup disk or secured share outside the repository. See

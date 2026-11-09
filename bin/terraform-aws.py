@@ -171,14 +171,20 @@ def _temporary_credentials(args: argparse.Namespace) -> tuple[dict[str, str], st
             "AWS target account selectors disagree: "
             + ", ".join(sorted(expected_account_ids))
         )
-    if expected_account_ids:
-        expected_account = next(iter(expected_account_ids))
-        actual_account = str(identity["Account"])
-        if actual_account != expected_account:
-            raise VaultError(
-                f"authenticated AWS account {actual_account} does not match "
-                f"the selected target account {expected_account}"
-            )
+    # Fail closed: without an expected account the Vault keys could point
+    # Terraform at any account they happen to belong to.
+    if not expected_account_ids:
+        raise VaultError(
+            "cannot verify the target AWS account; pass --target-project as the "
+            "12-digit account ID, add aws_account_id to the Vault entry, or use --role-arn"
+        )
+    expected_account = next(iter(expected_account_ids))
+    actual_account = str(identity["Account"])
+    if actual_account != expected_account:
+        raise VaultError(
+            f"authenticated AWS account {actual_account} does not match "
+            f"the selected target account {expected_account}"
+        )
 
     expiration = credentials.get("Expiration")
     identity_text = str(identity["Arn"])

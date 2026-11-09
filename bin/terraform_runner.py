@@ -157,9 +157,12 @@ def report_stale_tfvars(
 
     dib7 republishes GCP, Azure, OpenStack, and vSphere images in place and
     keeps only the latest catalog row, so an older tfvars file can name a
-    deleted image or label current content with an old version. This only
-    warns: deploying an older AWS AMI on purpose is still allowed.
+    deleted image or label current content with an old version. By default
+    this only warns, so deploying an older AWS AMI on purpose is still
+    allowed; DIB7_STRICT_CATALOG=1 makes drift (or an unreadable catalog)
+    stop the run.
     """
+    strict = os.environ.get("DIB7_STRICT_CATALOG", "").strip().lower() in {"1", "true", "yes"}
     if not terraform_args or terraform_args[0] not in CATALOG_CHECK_COMMANDS:
         return
     generated = [
@@ -172,12 +175,18 @@ def report_stale_tfvars(
     try:
         images = _read_catalog(catalog)
     except CatalogError as exc:
+        if strict:
+            raise SystemExit(f"Error: cannot compare tfvars with the image catalog: {exc}") from exc
         print(f"Warning: cannot compare tfvars with the image catalog: {exc}", file=sys.stderr)
         return
+    stale = False
     for path, values in generated:
         drift = catalog_drift(provider, values, images)
         if drift:
+            stale = True
             print(f"Warning: {path.name}: {drift}", file=sys.stderr)
+    if stale and strict:
+        raise SystemExit("Error: DIB7_STRICT_CATALOG is set; regenerate the tfvars before continuing")
 
 def run_terraform(
     terraform_bin: str,
