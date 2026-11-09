@@ -75,9 +75,11 @@ regional catalog variants.
 
 If `aws_projects` contains multiple entries, select the same key, account ID, or
 profile used in Ansible with `--target-project` before the Terraform command,
-or set `DIB7_AWS_TARGET_PROJECT`. When the selected entry, target selector, or
-role ARN provides an account ID, the wrapper checks the authenticated AWS
-account against it and stops before Terraform if they disagree:
+or set `DIB7_AWS_TARGET_PROJECT`. The wrapper checks the authenticated AWS
+account against the account ID from the selected entry's `aws_account_id`, a
+12-digit target selector, or the role ARN, and stops before Terraform if they
+disagree. If none of those supplies an account ID it also stops, rather than
+run against whichever account the Vault keys belong to:
 
 ```bash
 ~/.dib7/bin/python bin/terraform-aws.py --target-project ${AWS_TARGET_PROJECT} plan \

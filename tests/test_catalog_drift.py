@@ -11,8 +11,10 @@ import io
 import json
 import sys
 import tempfile
+import os
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 
@@ -95,6 +97,19 @@ class CatalogDriftTests(unittest.TestCase):
     def test_separate_var_file_argument_is_resolved_from_the_root(self) -> None:
         output = self.warnings([image(version="1790514002")], ["apply", "-var-file", "image.tfvars"])
         self.assertIn("1790514002", output)
+
+    def test_strict_mode_stops_on_drift(self) -> None:
+        with patch.dict(os.environ, {"DIB7_STRICT_CATALOG": "1"}):
+            with self.assertRaises(SystemExit):
+                self.warnings([image(version="1790514002")])
+            self.assertEqual(self.warnings([image()]), "")
+
+    def test_strict_mode_stops_on_unreadable_catalog(self) -> None:
+        with patch.dict(os.environ, {"DIB7_STRICT_CATALOG": "1"}):
+            with self.assertRaises(SystemExit):
+                terraform_runner.report_stale_tfvars(
+                    "openstack", self.root, ["plan", "-var-file=image.tfvars"],
+                    self.root / "missing.json")
 
 if __name__ == "__main__":
     unittest.main()
