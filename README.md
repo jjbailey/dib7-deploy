@@ -96,13 +96,32 @@ python3 -m unittest discover -s tests -v
 ```
 
 This repository currently has no tracked CI pipeline; run the unit tests and
-Terraform formatting check locally before committing:
+Terraform checks locally before committing. `validate` needs each root's
+`.terraform/` from a prior `init` (`terraform -chdir=environments/<provider>
+init -backend=false` is enough) but no credentials:
 
 ```bash
 terraform fmt -check -recursive environments/
+for root in environments/*/ ; do terraform -chdir="$root" validate ; done
 ```
 
 See [`doc/state-management.md`](doc/state-management.md) for separate
 deployment workspaces and state backups.
 
 Maintenance and support terms are in [`MAINTENANCE-TERMS.md`](MAINTENANCE-TERMS.md).
+
+## License
+
+dib7-deploy: Terraform deployment repo for dib7
+
+Copyright (C) 2026 Jack Bailey
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the [LICENSE](LICENSE) file for
+details.
