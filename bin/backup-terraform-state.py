@@ -40,14 +40,15 @@ def backup_state(
             continue
         # The local backend writes .terraform.tfstate.lock.info beside a state
         # file while an operation holds it; a copy taken then may be torn.
-        locked.extend(provider_dir.rglob(".terraform.tfstate.lock.info"))
-        state_files.extend(
-            path
-            for path in provider_dir.rglob("*")
-            if not path.is_symlink()
-            and path.is_file()
-            and (path.name == "terraform.tfstate" or path.name.startswith("terraform.tfstate."))
-        )
+        for path in provider_dir.rglob("*"):
+            if path.name == ".terraform.tfstate.lock.info":
+                locked.append(path)
+            elif (
+                not path.is_symlink()
+                and path.is_file()
+                and (path.name == "terraform.tfstate" or path.name.startswith("terraform.tfstate."))
+            ):
+                state_files.append(path)
     if locked and not force:
         held = ", ".join(str(path.parent.relative_to(inventory)) for path in sorted(locked))
         raise BackupError(
