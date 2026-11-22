@@ -90,7 +90,7 @@ ssh_public_key = "ssh-ed25519 AAAA... workstation"
 # vm_folder = "Workloads"
 # template_folder = "Templates"
 # guest_id  = "ubuntu64Guest" # defaults to the source template's guest ID
-# scsi_type = "lsilogic"
+# scsi_type = "pvscsi"
 # thin_provisioned = true # default; set false for thick provisioning
 ```
 
