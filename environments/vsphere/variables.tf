@@ -156,7 +156,7 @@ variable "guest_id" {
 variable "scsi_type" {
   description = "Virtual SCSI controller type; match the controller used by the source template."
   type        = string
-  default     = "lsilogic"
+  default     = "pvscsi"
 }
 
 variable "ssh_public_key" {
